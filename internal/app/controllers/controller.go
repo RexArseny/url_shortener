@@ -9,7 +9,7 @@ import (
 	"github.com/RexArseny/url_shortener/internal/app/usecases"
 )
 
-const Id = "id"
+const ID = "id"
 
 type Controller struct {
 	interactor usecases.Interactor
@@ -60,7 +60,7 @@ func (c *Controller) GetShortLink(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	data := req.PathValue(Id)
+	data := req.PathValue(ID)
 
 	result, err := c.interactor.GetShortLink(data)
 	if err != nil {

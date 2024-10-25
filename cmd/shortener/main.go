@@ -16,7 +16,7 @@ func main() {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /", controllers.RecoverMiddleware(ctrl.CreateShortLink))
-	mux.HandleFunc(fmt.Sprintf("GET /{%s}", controllers.Id), controllers.RecoverMiddleware(ctrl.GetShortLink))
+	mux.HandleFunc(fmt.Sprintf("GET /{%s}", controllers.ID), controllers.RecoverMiddleware(ctrl.GetShortLink))
 
 	log.Printf("start service on %s:%d", args.DefaultDomain, args.DefaultPort)
 
