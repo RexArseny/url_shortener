@@ -145,6 +145,9 @@ func TestGetShortLink(t *testing.T) {
 
 			result := w.Result()
 
+			err = result.Body.Close()
+			assert.NoError(t, err)
+
 			assert.Equal(t, tt.want.stastusCode, result.StatusCode)
 			assert.Equal(t, tt.want.location, result.Header.Get("Location"))
 		})
