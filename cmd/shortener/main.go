@@ -12,11 +12,11 @@ import (
 
 func main() {
 	interactor := usecases.NewInteractor()
-	ctrl := controllers.NewController(interactor)
+	controller := controllers.NewController(interactor)
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("POST /", controllers.RecoverMiddleware(ctrl.CreateShortLink))
-	mux.HandleFunc(fmt.Sprintf("GET /{%s}", controllers.ID), controllers.RecoverMiddleware(ctrl.GetShortLink))
+	mux.HandleFunc("POST /", controllers.RecoverMiddleware(controller.CreateShortLink))
+	mux.HandleFunc(fmt.Sprintf("GET /{%s}", controllers.ID), controllers.RecoverMiddleware(controller.GetShortLink))
 
 	log.Printf("start service on %s:%d", args.DefaultDomain, args.DefaultPort)
 
