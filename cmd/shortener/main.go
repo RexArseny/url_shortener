@@ -16,7 +16,7 @@ func main() {
 	pflag.Parse()
 	prefix, err := cfg.GetURLPrefix()
 	if err != nil {
-		logrus.Fatalf(fmt.Sprintf("invallid arguments: %s", err))
+		logrus.Fatalf("invallid arguments: %s", err)
 	}
 
 	interactor := usecases.NewInteractor(cfg.BasicPath)

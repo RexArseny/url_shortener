@@ -23,8 +23,8 @@ func Init() *Config {
 		ServerAddress: DefaultServerAddress,
 		BasicPath:     DefaultBasicPath,
 	}
-	pflag.StringVar(&cfg.ServerAddress, "a", DefaultServerAddress, "server address")
-	pflag.StringVar(&cfg.BasicPath, "b", DefaultBasicPath, "basic path")
+	pflag.StringVarP(&cfg.ServerAddress, "a", "a", DefaultServerAddress, "server address")
+	pflag.StringVarP(&cfg.BasicPath, "b", "b", DefaultBasicPath, "basic path")
 	return cfg
 }
 
