@@ -10,10 +10,23 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/RexArseny/url_shortener/internal/app/config"
 	"github.com/RexArseny/url_shortener/internal/app/usecases"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 )
+
+func TestNewController(t *testing.T) {
+	interactor := usecases.NewInteractor(config.DefaultBasicPath)
+
+	expected := Controller{
+		interactor: interactor,
+	}
+
+	actual := NewController(interactor)
+
+	assert.Equal(t, expected, actual)
+}
 
 func TestCreateShortLink(t *testing.T) {
 	type want struct {
@@ -55,7 +68,7 @@ func TestCreateShortLink(t *testing.T) {
 		},
 	}
 
-	interactor := usecases.NewInteractor()
+	interactor := usecases.NewInteractor(config.DefaultBasicPath)
 	conntroller := NewController(interactor)
 
 	router := gin.New()
@@ -140,7 +153,7 @@ func TestGetShortLink(t *testing.T) {
 		},
 	}
 
-	interactor := usecases.NewInteractor()
+	interactor := usecases.NewInteractor(config.DefaultBasicPath)
 	conntroller := NewController(interactor)
 
 	router := gin.New()

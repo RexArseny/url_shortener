@@ -5,7 +5,6 @@ import (
 	"math/rand"
 	"net/url"
 
-	"github.com/RexArseny/url_shortener/internal/app/args"
 	"github.com/RexArseny/url_shortener/internal/app/models"
 )
 
@@ -14,12 +13,14 @@ const shortLinkPathLength = 8
 var letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
 
 type Interactor struct {
-	links *models.Links
+	links     *models.Links
+	basicPath string
 }
 
-func NewInteractor() Interactor {
+func NewInteractor(basicPath string) Interactor {
 	return Interactor{
-		links: models.NewLinks(),
+		links:     models.NewLinks(),
+		basicPath: basicPath,
 	}
 }
 
@@ -33,7 +34,7 @@ func (i *Interactor) CreateShortLink(originalURL string) (*string, error) {
 	shortLink, ok := i.links.Links[originalURL]
 	i.links.M.RUnlock()
 	if ok {
-		path := fmt.Sprintf("http://%s:%d/%s", args.DefaultDomain, args.DefaultPort, shortLink)
+		path := fmt.Sprintf("%s/%s", i.basicPath, shortLink)
 		return &path, nil
 	}
 
@@ -43,7 +44,7 @@ func (i *Interactor) CreateShortLink(originalURL string) (*string, error) {
 	i.links.Links[originalURL] = shortLink
 	i.links.M.Unlock()
 
-	path := fmt.Sprintf("http://%s:%d/%s", args.DefaultDomain, args.DefaultPort, shortLink)
+	path := fmt.Sprintf("%s/%s", i.basicPath, shortLink)
 
 	return &path, nil
 }

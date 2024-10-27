@@ -3,11 +3,11 @@ package controllers
 import (
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 
 	"github.com/RexArseny/url_shortener/internal/app/usecases"
 	"github.com/gin-gonic/gin"
+	"github.com/sirupsen/logrus"
 )
 
 const ID = "id"
@@ -27,20 +27,20 @@ func NewController(interactor usecases.Interactor) Controller {
 func (c *Controller) CreateShortLink(ctx *gin.Context) {
 	data, err := io.ReadAll(ctx.Request.Body)
 	if err != nil {
-		log.Printf("can not read body %v; request: %v", ctx.Request.Body, ctx.Request)
+		logrus.Errorf("can not read body %v; request: %v", ctx.Request.Body, ctx.Request)
 		ctx.String(http.StatusBadRequest, errorService.Error())
 		return
 	}
 
 	result, err := c.interactor.CreateShortLink(string(data))
 	if err != nil {
-		log.Printf("can not create short link %s; request: %v", err, ctx.Request)
+		logrus.Errorf("can not create short link %s; request: %v", err, ctx.Request)
 		ctx.String(http.StatusBadRequest, errorService.Error())
 		return
 	}
 
 	if result == nil || *result == "" {
-		log.Printf("short link is empty; request: %v", ctx.Request)
+		logrus.Errorf("short link is empty; request: %v", ctx.Request)
 		ctx.String(http.StatusBadRequest, errorService.Error())
 		return
 	}
@@ -54,13 +54,13 @@ func (c *Controller) GetShortLink(ctx *gin.Context) {
 
 	result, err := c.interactor.GetShortLink(data)
 	if err != nil {
-		log.Printf("can not get short link %s; request: %v", err, ctx.Request)
+		logrus.Errorf("can not get short link %s; request: %v", err, ctx.Request)
 		ctx.String(http.StatusBadRequest, errorService.Error())
 		return
 	}
 
 	if result == nil || *result == "" {
-		log.Printf("short link is empty; request: %v", ctx.Request)
+		logrus.Errorf("short link is empty; request: %v", ctx.Request)
 		ctx.String(http.StatusBadRequest, errorService.Error())
 		return
 	}

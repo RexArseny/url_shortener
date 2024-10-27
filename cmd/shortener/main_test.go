@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/RexArseny/url_shortener/internal/app/config"
 	"github.com/RexArseny/url_shortener/internal/app/controllers"
 	"github.com/RexArseny/url_shortener/internal/app/usecases"
 	"github.com/gin-gonic/gin"
@@ -58,7 +59,7 @@ func TestCreateShortLink(t *testing.T) {
 		},
 	}
 
-	interactor := usecases.NewInteractor()
+	interactor := usecases.NewInteractor(config.DefaultBasicPath)
 	conntroller := controllers.NewController(interactor)
 
 	router := gin.New()
@@ -144,7 +145,7 @@ func TestGetShortLink(t *testing.T) {
 		},
 	}
 
-	interactor := usecases.NewInteractor()
+	interactor := usecases.NewInteractor(config.DefaultBasicPath)
 	conntroller := controllers.NewController(interactor)
 
 	router := gin.New()
