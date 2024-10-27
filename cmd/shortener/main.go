@@ -2,26 +2,22 @@ package main
 
 import (
 	"fmt"
-	"log"
-	"net/http"
 
 	"github.com/RexArseny/url_shortener/internal/app/args"
 	"github.com/RexArseny/url_shortener/internal/app/controllers"
 	"github.com/RexArseny/url_shortener/internal/app/usecases"
+	"github.com/gin-gonic/gin"
 )
 
 func main() {
 	interactor := usecases.NewInteractor()
 	controller := controllers.NewController(interactor)
 
-	mux := http.NewServeMux()
-	mux.HandleFunc("POST /", controllers.RecoverMiddleware(controller.CreateShortLink))
-	mux.HandleFunc(fmt.Sprintf("GET /{%s}", controllers.ID), controllers.RecoverMiddleware(controller.GetShortLink))
+	router := gin.New()
+	router.Use(gin.Logger(), gin.Recovery())
 
-	log.Printf("start service on %s:%d", args.DefaultDomain, args.DefaultPort)
+	router.POST("/", controller.CreateShortLink)
+	router.GET(fmt.Sprintf("/:%s", controllers.ID), controller.GetShortLink)
 
-	err := http.ListenAndServe(fmt.Sprintf("%s:%d", args.DefaultDomain, args.DefaultPort), mux)
-	if err != nil {
-		panic(err)
-	}
+	router.Run(fmt.Sprintf("%s:%d", args.DefaultDomain, args.DefaultPort))
 }

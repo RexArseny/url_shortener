@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -10,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/RexArseny/url_shortener/internal/app/usecases"
+	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -29,7 +31,7 @@ func TestCreateShortLink(t *testing.T) {
 			request: "",
 			want: want{
 				stastusCode: http.StatusBadRequest,
-				contenType:  "",
+				contenType:  "text/plain; charset=utf-8",
 				response:    false,
 			},
 		},
@@ -38,7 +40,7 @@ func TestCreateShortLink(t *testing.T) {
 			request: "abc",
 			want: want{
 				stastusCode: http.StatusBadRequest,
-				contenType:  "",
+				contenType:  "text/plain; charset=utf-8",
 				response:    false,
 			},
 		},
@@ -56,11 +58,18 @@ func TestCreateShortLink(t *testing.T) {
 	interactor := usecases.NewInteractor()
 	conntroller := NewController(interactor)
 
+	router := gin.New()
+	router.Use(gin.Logger(), gin.Recovery())
+
+	router.POST("/", conntroller.CreateShortLink)
+	router.GET(fmt.Sprintf("/:%s", ID), conntroller.GetShortLink)
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			request := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(tt.request))
 			w := httptest.NewRecorder()
-			conntroller.CreateShortLink(w, request)
+
+			router.ServeHTTP(w, request)
 
 			result := w.Result()
 
@@ -83,26 +92,47 @@ func TestCreateShortLink(t *testing.T) {
 }
 
 func TestGetShortLink(t *testing.T) {
+	type input struct {
+		valid bool
+		path  string
+	}
 	type want struct {
 		stastusCode int
 		location    string
 	}
 	tests := []struct {
 		name    string
-		request bool
+		request input
 		want    want
 	}{
 		{
-			name:    "empty id",
-			request: false,
+			name: "empty id",
+			request: input{
+				valid: false,
+				path:  "",
+			},
+			want: want{
+				stastusCode: http.StatusNotFound,
+				location:    "",
+			},
+		},
+		{
+			name: "invalid id",
+			request: input{
+				valid: false,
+				path:  "abc",
+			},
 			want: want{
 				stastusCode: http.StatusBadRequest,
 				location:    "",
 			},
 		},
 		{
-			name:    "valid id",
-			request: true,
+			name: "valid id",
+			request: input{
+				valid: true,
+				path:  "",
+			},
 			want: want{
 				stastusCode: http.StatusTemporaryRedirect,
 				location:    "https://ya.ru",
@@ -113,9 +143,16 @@ func TestGetShortLink(t *testing.T) {
 	interactor := usecases.NewInteractor()
 	conntroller := NewController(interactor)
 
+	router := gin.New()
+	router.Use(gin.Logger(), gin.Recovery())
+
+	router.POST("/", conntroller.CreateShortLink)
+	router.GET(fmt.Sprintf("/:%s", ID), conntroller.GetShortLink)
+
 	request := httptest.NewRequest(http.MethodPost, "/", strings.NewReader("https://ya.ru"))
 	w := httptest.NewRecorder()
-	conntroller.CreateShortLink(w, request)
+
+	router.ServeHTTP(w, request)
 
 	result := w.Result()
 
@@ -134,14 +171,16 @@ func TestGetShortLink(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var id string
-			if tt.request {
+			if tt.request.valid {
 				id = path.Base(parsedURL.Path)
+			} else {
+				id = tt.request.path
 			}
 
-			request := httptest.NewRequest(http.MethodGet, "/", nil)
-			request.SetPathValue(ID, id)
+			request := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/%s", id), nil)
 			w := httptest.NewRecorder()
-			conntroller.GetShortLink(w, request)
+
+			router.ServeHTTP(w, request)
 
 			result := w.Result()
 

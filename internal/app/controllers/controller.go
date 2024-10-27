@@ -7,9 +7,12 @@ import (
 	"net/http"
 
 	"github.com/RexArseny/url_shortener/internal/app/usecases"
+	"github.com/gin-gonic/gin"
 )
 
 const ID = "id"
+
+var errorService = fmt.Errorf("service error")
 
 type Controller struct {
 	interactor usecases.Interactor
@@ -21,65 +24,46 @@ func NewController(interactor usecases.Interactor) Controller {
 	}
 }
 
-func (c *Controller) CreateShortLink(res http.ResponseWriter, req *http.Request) {
-	if req.Method != http.MethodPost {
-		log.Printf("incorrect method %s; should be POST; request: %v", req.Method, req)
-		c.error(res, fmt.Errorf("method should be POST and not %s", req.Method))
-		return
-	}
-
-	data, err := io.ReadAll(req.Body)
+func (c *Controller) CreateShortLink(ctx *gin.Context) {
+	data, err := io.ReadAll(ctx.Request.Body)
 	if err != nil {
-		log.Printf("can not read body %v; request: %v", req.Body, req)
-		c.error(res, fmt.Errorf("service error"))
+		log.Printf("can not read body %v; request: %v", ctx.Request.Body, ctx.Request)
+		ctx.String(http.StatusBadRequest, errorService.Error())
 		return
 	}
 
 	result, err := c.interactor.CreateShortLink(string(data))
 	if err != nil {
-		log.Printf("can not create short link %s; request: %v", err, req)
-		c.error(res, fmt.Errorf("service error"))
+		log.Printf("can not create short link %s; request: %v", err, ctx.Request)
+		ctx.String(http.StatusBadRequest, errorService.Error())
 		return
 	}
 
 	if result == nil || *result == "" {
-		log.Printf("short link is empty; request: %v", req)
-		c.error(res, fmt.Errorf("service error"))
+		log.Printf("short link is empty; request: %v", ctx.Request)
+		ctx.String(http.StatusBadRequest, errorService.Error())
 		return
 	}
 
-	res.Header().Set("Content-Type", "text/plain")
-	res.WriteHeader(http.StatusCreated)
-	res.Write([]byte(*result))
+	ctx.Writer.Header().Set("Content-Type", "text/plain")
+	ctx.String(http.StatusCreated, *result)
 }
 
-func (c *Controller) GetShortLink(res http.ResponseWriter, req *http.Request) {
-	if req.Method != http.MethodGet {
-		log.Printf("incorrect method %s; should be GET; request: %v", req.Method, req)
-		c.error(res, fmt.Errorf("method should be GET and not %s", req.Method))
-		return
-	}
-
-	data := req.PathValue(ID)
+func (c *Controller) GetShortLink(ctx *gin.Context) {
+	data := ctx.Param(ID)
 
 	result, err := c.interactor.GetShortLink(data)
 	if err != nil {
-		log.Printf("can not get short link %s; request: %v", err, req)
-		c.error(res, fmt.Errorf("service error"))
+		log.Printf("can not get short link %s; request: %v", err, ctx.Request)
+		ctx.String(http.StatusBadRequest, errorService.Error())
 		return
 	}
 
 	if result == nil || *result == "" {
-		log.Printf("short link is empty; request: %v", req)
-		c.error(res, fmt.Errorf("service error"))
+		log.Printf("short link is empty; request: %v", ctx.Request)
+		ctx.String(http.StatusBadRequest, errorService.Error())
 		return
 	}
 
-	res.Header().Set("Location", *result)
-	res.WriteHeader(http.StatusTemporaryRedirect)
-}
-
-func (c *Controller) error(res http.ResponseWriter, err error) {
-	res.WriteHeader(http.StatusBadRequest)
-	res.Write([]byte(err.Error()))
+	ctx.Redirect(http.StatusTemporaryRedirect, *result)
 }

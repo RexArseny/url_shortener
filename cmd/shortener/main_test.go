@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -8,9 +9,12 @@ import (
 	"path"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/RexArseny/url_shortener/internal/app/controllers"
 	"github.com/RexArseny/url_shortener/internal/app/usecases"
+	"github.com/gin-gonic/gin"
+	"github.com/gojek/heimdall/v7/httpclient"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -30,7 +34,7 @@ func TestCreateShortLink(t *testing.T) {
 			request: "",
 			want: want{
 				stastusCode: http.StatusBadRequest,
-				contenType:  "",
+				contenType:  "text/plain; charset=utf-8",
 				response:    false,
 			},
 		},
@@ -39,7 +43,7 @@ func TestCreateShortLink(t *testing.T) {
 			request: "abc",
 			want: want{
 				stastusCode: http.StatusBadRequest,
-				contenType:  "",
+				contenType:  "text/plain; charset=utf-8",
 				response:    false,
 			},
 		},
@@ -57,13 +61,21 @@ func TestCreateShortLink(t *testing.T) {
 	interactor := usecases.NewInteractor()
 	conntroller := controllers.NewController(interactor)
 
+	router := gin.New()
+	router.Use(gin.Logger(), gin.Recovery())
+
+	router.POST("/", conntroller.CreateShortLink)
+	router.GET(fmt.Sprintf("/:%s", controllers.ID), conntroller.GetShortLink)
+
+	server := httptest.NewServer(router)
+	defer server.Close()
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			request := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(tt.request))
-			w := httptest.NewRecorder()
-			conntroller.CreateShortLink(w, request)
+			client := httpclient.NewClient(httpclient.WithHTTPTimeout(15 * time.Second))
 
-			result := w.Result()
+			result, err := client.Post(fmt.Sprintf("%s/", server.URL), strings.NewReader(tt.request), nil)
+			assert.NoError(t, err)
 
 			assert.Equal(t, tt.want.stastusCode, result.StatusCode)
 			assert.Equal(t, tt.want.contenType, result.Header.Get("Content-Type"))
@@ -84,26 +96,47 @@ func TestCreateShortLink(t *testing.T) {
 }
 
 func TestGetShortLink(t *testing.T) {
+	type input struct {
+		valid bool
+		path  string
+	}
 	type want struct {
 		stastusCode int
 		location    string
 	}
 	tests := []struct {
 		name    string
-		request bool
+		request input
 		want    want
 	}{
 		{
-			name:    "empty id",
-			request: false,
+			name: "empty id",
+			request: input{
+				valid: false,
+				path:  "",
+			},
+			want: want{
+				stastusCode: http.StatusNotFound,
+				location:    "",
+			},
+		},
+		{
+			name: "invalid id",
+			request: input{
+				valid: false,
+				path:  "abc",
+			},
 			want: want{
 				stastusCode: http.StatusBadRequest,
 				location:    "",
 			},
 		},
 		{
-			name:    "valid id",
-			request: true,
+			name: "valid id",
+			request: input{
+				valid: true,
+				path:  "",
+			},
 			want: want{
 				stastusCode: http.StatusTemporaryRedirect,
 				location:    "https://ya.ru",
@@ -114,11 +147,24 @@ func TestGetShortLink(t *testing.T) {
 	interactor := usecases.NewInteractor()
 	conntroller := controllers.NewController(interactor)
 
-	request := httptest.NewRequest(http.MethodPost, "/", strings.NewReader("https://ya.ru"))
-	w := httptest.NewRecorder()
-	conntroller.CreateShortLink(w, request)
+	router := gin.New()
+	router.Use(gin.Logger(), gin.Recovery())
 
-	result := w.Result()
+	router.POST("/", conntroller.CreateShortLink)
+	router.GET(fmt.Sprintf("/:%s", controllers.ID), conntroller.GetShortLink)
+
+	server := httptest.NewServer(router)
+	defer server.Close()
+
+	client := httpclient.NewClient(httpclient.WithHTTPClient(&http.Client{
+		Timeout: 15 * time.Second,
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
+	}))
+
+	result, err := client.Post(fmt.Sprintf("%s/", server.URL), strings.NewReader("https://ya.ru"), nil)
+	assert.NoError(t, err)
 
 	assert.Equal(t, http.StatusCreated, result.StatusCode)
 	assert.Equal(t, "text/plain", result.Header.Get("Content-Type"))
@@ -135,16 +181,14 @@ func TestGetShortLink(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var id string
-			if tt.request {
+			if tt.request.valid {
 				id = path.Base(parsedURL.Path)
+			} else {
+				id = tt.request.path
 			}
 
-			request := httptest.NewRequest(http.MethodGet, "/", nil)
-			request.SetPathValue(controllers.ID, id)
-			w := httptest.NewRecorder()
-			conntroller.GetShortLink(w, request)
-
-			result := w.Result()
+			result, err := client.Get(fmt.Sprintf("%s/%s", server.URL, id), nil)
+			assert.NoError(t, err)
 
 			err = result.Body.Close()
 			assert.NoError(t, err)
