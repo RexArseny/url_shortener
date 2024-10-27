@@ -5,6 +5,7 @@ import (
 	"net/url"
 	"path"
 
+	env "github.com/caarlos0/env/v11"
 	"github.com/spf13/pflag"
 )
 
@@ -14,18 +15,23 @@ const (
 )
 
 type Config struct {
-	ServerAddress string
-	BasicPath     string
+	ServerAddress string `env:"SERVER_ADDRESS"`
+	BasicPath     string `env:"BASE_URL"`
 }
 
-func Init() *Config {
-	cfg := &Config{
-		ServerAddress: DefaultServerAddress,
-		BasicPath:     DefaultBasicPath,
+func Init() (*Config, error) {
+	var cfg Config
+	err := env.Parse(&cfg)
+	if err != nil {
+		return nil, err
 	}
-	pflag.StringVarP(&cfg.ServerAddress, "a", "a", DefaultServerAddress, "server address")
-	pflag.StringVarP(&cfg.BasicPath, "b", "b", DefaultBasicPath, "basic path")
-	return cfg
+	if cfg.ServerAddress == "" {
+		pflag.StringVarP(&cfg.ServerAddress, "a", "a", DefaultServerAddress, "server address")
+	}
+	if cfg.BasicPath == "" {
+		pflag.StringVarP(&cfg.BasicPath, "b", "b", DefaultBasicPath, "basic path")
+	}
+	return &cfg, nil
 }
 
 func (c *Config) GetURLPrefix() (*string, error) {

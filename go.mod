@@ -3,6 +3,7 @@ module github.com/RexArseny/url_shortener
 go 1.22
 
 require (
+	github.com/caarlos0/env/v11 v11.2.2
 	github.com/gin-gonic/gin v1.10.0
 	github.com/gojek/heimdall/v7 v7.0.3
 	github.com/sirupsen/logrus v1.9.3

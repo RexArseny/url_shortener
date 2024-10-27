@@ -12,8 +12,13 @@ import (
 )
 
 func main() {
-	cfg := config.Init()
+	cfg, err := config.Init()
+	if err != nil {
+		logrus.Fatalf("can not parse env: %s", err)
+	}
+
 	pflag.Parse()
+
 	prefix, err := cfg.GetURLPrefix()
 	if err != nil {
 		logrus.Fatalf("invallid arguments: %s", err)
