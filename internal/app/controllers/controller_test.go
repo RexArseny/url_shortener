@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -176,7 +175,7 @@ func TestGetShortLink(t *testing.T) {
 
 			w = httptest.NewRecorder()
 			ctx, _ = gin.CreateTestContext(w)
-			ctx.Request = httptest.NewRequest(http.MethodGet, fmt.Sprintf("/:%s", ID), http.NoBody)
+			ctx.Request = httptest.NewRequest(http.MethodGet, "/:"+ID, http.NoBody)
 			ctx.Params = []gin.Param{
 				{
 					Key:   ID,
