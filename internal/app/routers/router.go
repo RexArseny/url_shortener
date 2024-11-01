@@ -1,6 +1,7 @@
 package routers
 
 import (
+	"errors"
 	"fmt"
 	"net/url"
 	"path"
@@ -28,14 +29,14 @@ func NewRouter(cfg *config.Config, controller controllers.Controller) (*gin.Engi
 func getURLPrefix(cfg *config.Config) (*string, error) {
 	serverAddress, err := url.ParseRequestURI(cfg.ServerAddress)
 	if err != nil {
-		return nil, fmt.Errorf("invalid server address: %s", err)
+		return nil, fmt.Errorf("invalid server address: %w", err)
 	}
 	basicPath, err := url.ParseRequestURI(cfg.BasicPath)
 	if err != nil {
-		return nil, fmt.Errorf("invalid basic path: %s", err)
+		return nil, fmt.Errorf("invalid basic path: %w", err)
 	}
 	if serverAddress.String() != basicPath.Host {
-		return nil, fmt.Errorf("server address does not correspond with basic path")
+		return nil, errors.New("server address does not correspond with basic path")
 	}
 	urlPrefix := path.Base(basicPath.Path)
 	return &urlPrefix, nil

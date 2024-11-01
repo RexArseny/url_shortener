@@ -1,6 +1,7 @@
 package usecases
 
 import (
+	"errors"
 	"fmt"
 	"math/rand"
 	"net/url"
@@ -27,7 +28,7 @@ func NewInteractor(basicPath string) Interactor {
 func (i *Interactor) CreateShortLink(originalURL string) (*string, error) {
 	_, err := url.ParseRequestURI(originalURL)
 	if err != nil {
-		return nil, fmt.Errorf("provided string is not valid url: %s", err)
+		return nil, fmt.Errorf("provided string is not valid url: %w", err)
 	}
 
 	shortLink, ok := i.links.GetShortLink(originalURL)
@@ -60,7 +61,7 @@ func (i *Interactor) generateShortLink() string {
 func (i *Interactor) GetShortLink(shortLink string) (*string, error) {
 	originalURL, ok := i.links.GetOriginalURL(shortLink)
 	if !ok {
-		return nil, fmt.Errorf("no url by short link")
+		return nil, errors.New("no url by short link")
 	}
 
 	return &originalURL, nil

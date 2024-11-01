@@ -75,7 +75,7 @@ func TestCreateShortLink(t *testing.T) {
 
 			client := httpclient.NewClient(httpclient.WithHTTPTimeout(15 * time.Second))
 
-			result, err := client.Post(fmt.Sprintf("%s/", server.URL), strings.NewReader(tt.request), nil)
+			result, err := client.Post(server.URL+"/", strings.NewReader(tt.request), nil)
 			assert.NoError(t, err)
 
 			assert.Equal(t, tt.want.stastusCode, result.StatusCode)
@@ -166,7 +166,7 @@ func TestGetShortLink(t *testing.T) {
 				},
 			}))
 
-			result, err := client.Post(fmt.Sprintf("%s/", server.URL), strings.NewReader("https://ya.ru"), nil)
+			result, err := client.Post(server.URL+"/", strings.NewReader("https://ya.ru"), nil)
 			assert.NoError(t, err)
 
 			assert.Equal(t, http.StatusCreated, result.StatusCode)

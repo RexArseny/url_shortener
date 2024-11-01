@@ -176,7 +176,7 @@ func TestGetShortLink(t *testing.T) {
 
 			w = httptest.NewRecorder()
 			ctx, _ = gin.CreateTestContext(w)
-			ctx.Request = httptest.NewRequest(http.MethodGet, fmt.Sprintf("/:%s", ID), nil)
+			ctx.Request = httptest.NewRequest(http.MethodGet, fmt.Sprintf("/:%s", ID), http.NoBody)
 			ctx.Params = []gin.Param{
 				{
 					Key:   ID,

@@ -2,7 +2,6 @@ package main
 
 import (
 	"net/http"
-	"time"
 
 	"github.com/RexArseny/url_shortener/internal/app/config"
 	"github.com/RexArseny/url_shortener/internal/app/controllers"
@@ -25,11 +24,8 @@ func main() {
 	}
 
 	s := &http.Server{
-		Addr:           cfg.ServerAddress,
-		Handler:        router,
-		ReadTimeout:    10 * time.Second,
-		WriteTimeout:   10 * time.Second,
-		MaxHeaderBytes: 1 << 20,
+		Addr:    cfg.ServerAddress,
+		Handler: router,
 	}
 	err = s.ListenAndServe()
 	if err != nil {

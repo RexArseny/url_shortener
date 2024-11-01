@@ -9,7 +9,12 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-const ID = "id"
+const (
+	ID = "id"
+
+	invalidBody  = "invalid body"
+	serviceError = "service error"
+)
 
 type Controller struct {
 	interactor usecases.Interactor
@@ -24,20 +29,20 @@ func NewController(interactor usecases.Interactor) Controller {
 func (c *Controller) CreateShortLink(ctx *gin.Context) {
 	data, err := io.ReadAll(ctx.Request.Body)
 	if err != nil {
-		ctx.String(http.StatusBadRequest, "invalid body")
+		ctx.String(http.StatusBadRequest, invalidBody)
 		return
 	}
 
 	result, err := c.interactor.CreateShortLink(string(data))
 	if err != nil {
 		logrus.Errorf("can not create short link: %s; request: %v", err, ctx.Request)
-		ctx.String(http.StatusBadRequest, "service error")
+		ctx.String(http.StatusBadRequest, invalidBody)
 		return
 	}
 
 	if result == nil || *result == "" {
 		logrus.Errorf("short link is empty; request: %v", ctx.Request)
-		ctx.String(http.StatusInternalServerError, "service error")
+		ctx.String(http.StatusInternalServerError, serviceError)
 		return
 	}
 
@@ -51,13 +56,13 @@ func (c *Controller) GetShortLink(ctx *gin.Context) {
 	result, err := c.interactor.GetShortLink(data)
 	if err != nil {
 		logrus.Errorf("can not get short link: %s; request: %v", err, ctx.Request)
-		ctx.String(http.StatusBadRequest, "service error")
+		ctx.String(http.StatusBadRequest, invalidBody)
 		return
 	}
 
 	if result == nil || *result == "" {
 		logrus.Errorf("short link is empty; request: %v", ctx.Request)
-		ctx.String(http.StatusInternalServerError, "service error")
+		ctx.String(http.StatusInternalServerError, serviceError)
 		return
 	}
 

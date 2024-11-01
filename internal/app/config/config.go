@@ -27,7 +27,7 @@ func Init() (*Config, error) {
 
 	err := env.Parse(&cfg)
 	if err != nil {
-		return nil, fmt.Errorf("can not parse env: %s", err)
+		return nil, fmt.Errorf("can not parse env: %w", err)
 	}
 
 	if cfg.BasicPath[len(cfg.BasicPath)-1] == '/' {
