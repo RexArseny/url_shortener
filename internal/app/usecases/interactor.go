@@ -30,9 +30,7 @@ func (i *Interactor) CreateShortLink(originalURL string) (*string, error) {
 		return nil, fmt.Errorf("provided string is not valid url: %s", err)
 	}
 
-	i.links.M.RLock()
-	shortLink, ok := i.links.Links[originalURL]
-	i.links.M.RUnlock()
+	shortLink, ok := i.links.GetShortLink(originalURL)
 	if ok {
 		path := fmt.Sprintf("%s/%s", i.basicPath, shortLink)
 		return &path, nil
@@ -40,9 +38,7 @@ func (i *Interactor) CreateShortLink(originalURL string) (*string, error) {
 
 	shortLink = i.generateShortLink()
 
-	i.links.M.Lock()
-	i.links.Links[originalURL] = shortLink
-	i.links.M.Unlock()
+	i.links.SetLink(originalURL, shortLink)
 
 	path := fmt.Sprintf("%s/%s", i.basicPath, shortLink)
 
@@ -50,23 +46,22 @@ func (i *Interactor) CreateShortLink(originalURL string) (*string, error) {
 }
 
 func (i *Interactor) generateShortLink() string {
-	path := make([]rune, shortLinkPathLength)
-	for i := range path {
-		path[i] = letterRunes[rand.Intn(len(letterRunes))]
-	}
-	return string(path)
-}
-
-func (i *Interactor) GetShortLink(shortLinkRequest string) (*string, error) {
-	i.links.M.RLock()
-	links := i.links.Links
-	i.links.M.RUnlock()
-
-	for originalURL, shortLink := range links {
-		if shortLinkRequest == shortLink {
-			return &originalURL, nil
+	for {
+		path := make([]rune, shortLinkPathLength)
+		for i := range path {
+			path[i] = letterRunes[rand.Intn(len(letterRunes))]
+		}
+		if _, ok := i.links.GetShortLink(string(path)); !ok {
+			return string(path)
 		}
 	}
+}
 
-	return nil, nil
+func (i *Interactor) GetShortLink(shortLink string) (*string, error) {
+	originalURL, ok := i.links.GetOriginalURL(shortLink)
+	if !ok {
+		return nil, fmt.Errorf("no url by short link")
+	}
+
+	return &originalURL, nil
 }

@@ -13,8 +13,8 @@ import (
 
 	"github.com/RexArseny/url_shortener/internal/app/config"
 	"github.com/RexArseny/url_shortener/internal/app/controllers"
+	"github.com/RexArseny/url_shortener/internal/app/routers"
 	"github.com/RexArseny/url_shortener/internal/app/usecases"
-	"github.com/gin-gonic/gin"
 	"github.com/gojek/heimdall/v7/httpclient"
 	"github.com/stretchr/testify/assert"
 )
@@ -59,20 +59,20 @@ func TestCreateShortLink(t *testing.T) {
 		},
 	}
 
-	interactor := usecases.NewInteractor(config.DefaultBasicPath)
-	conntroller := controllers.NewController(interactor)
-
-	router := gin.New()
-	router.Use(gin.Logger(), gin.Recovery())
-
-	router.POST("/", conntroller.CreateShortLink)
-	router.GET(fmt.Sprintf("/:%s", controllers.ID), conntroller.GetShortLink)
-
-	server := httptest.NewServer(router)
-	defer server.Close()
-
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			cfg := config.Config{
+				ServerAddress: config.DefaultServerAddress,
+				BasicPath:     config.DefaultBasicPath,
+			}
+			interactor := usecases.NewInteractor(cfg.BasicPath)
+			conntroller := controllers.NewController(interactor)
+			router, err := routers.NewRouter(&cfg, conntroller)
+			assert.NoError(t, err)
+
+			server := httptest.NewServer(router)
+			defer server.Close()
+
 			client := httpclient.NewClient(httpclient.WithHTTPTimeout(15 * time.Second))
 
 			result, err := client.Post(fmt.Sprintf("%s/", server.URL), strings.NewReader(tt.request), nil)
@@ -145,42 +145,42 @@ func TestGetShortLink(t *testing.T) {
 		},
 	}
 
-	interactor := usecases.NewInteractor(config.DefaultBasicPath)
-	conntroller := controllers.NewController(interactor)
-
-	router := gin.New()
-	router.Use(gin.Logger(), gin.Recovery())
-
-	router.POST("/", conntroller.CreateShortLink)
-	router.GET(fmt.Sprintf("/:%s", controllers.ID), conntroller.GetShortLink)
-
-	server := httptest.NewServer(router)
-	defer server.Close()
-
-	client := httpclient.NewClient(httpclient.WithHTTPClient(&http.Client{
-		Timeout: 15 * time.Second,
-		CheckRedirect: func(req *http.Request, via []*http.Request) error {
-			return http.ErrUseLastResponse
-		},
-	}))
-
-	result, err := client.Post(fmt.Sprintf("%s/", server.URL), strings.NewReader("https://ya.ru"), nil)
-	assert.NoError(t, err)
-
-	assert.Equal(t, http.StatusCreated, result.StatusCode)
-	assert.Equal(t, "text/plain", result.Header.Get("Content-Type"))
-
-	resultBody, err := io.ReadAll(result.Body)
-	assert.NoError(t, err)
-	err = result.Body.Close()
-	assert.NoError(t, err)
-
-	parsedURL, err := url.ParseRequestURI(string(resultBody))
-	assert.NoError(t, err)
-	assert.NotEmpty(t, parsedURL)
-
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			cfg := config.Config{
+				ServerAddress: config.DefaultServerAddress,
+				BasicPath:     config.DefaultBasicPath,
+			}
+			interactor := usecases.NewInteractor(cfg.BasicPath)
+			conntroller := controllers.NewController(interactor)
+			router, err := routers.NewRouter(&cfg, conntroller)
+			assert.NoError(t, err)
+
+			server := httptest.NewServer(router)
+			defer server.Close()
+
+			client := httpclient.NewClient(httpclient.WithHTTPClient(&http.Client{
+				Timeout: 15 * time.Second,
+				CheckRedirect: func(req *http.Request, via []*http.Request) error {
+					return http.ErrUseLastResponse
+				},
+			}))
+
+			result, err := client.Post(fmt.Sprintf("%s/", server.URL), strings.NewReader("https://ya.ru"), nil)
+			assert.NoError(t, err)
+
+			assert.Equal(t, http.StatusCreated, result.StatusCode)
+			assert.Equal(t, "text/plain", result.Header.Get("Content-Type"))
+
+			resultBody, err := io.ReadAll(result.Body)
+			assert.NoError(t, err)
+			err = result.Body.Close()
+			assert.NoError(t, err)
+
+			parsedURL, err := url.ParseRequestURI(string(resultBody))
+			assert.NoError(t, err)
+			assert.NotEmpty(t, parsedURL)
+
 			var id string
 			if tt.request.valid {
 				id = path.Base(parsedURL.Path)
@@ -188,7 +188,7 @@ func TestGetShortLink(t *testing.T) {
 				id = tt.request.path
 			}
 
-			result, err := client.Get(fmt.Sprintf("%s/%s", server.URL, id), nil)
+			result, err = client.Get(fmt.Sprintf("%s/%s", server.URL, id), nil)
 			assert.NoError(t, err)
 
 			err = result.Body.Close()

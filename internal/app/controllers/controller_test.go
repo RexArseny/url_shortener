@@ -16,18 +16,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNewController(t *testing.T) {
-	interactor := usecases.NewInteractor(config.DefaultBasicPath)
-
-	expected := Controller{
-		interactor: interactor,
-	}
-
-	actual := NewController(interactor)
-
-	assert.Equal(t, expected, actual)
-}
-
 func TestCreateShortLink(t *testing.T) {
 	type want struct {
 		stastusCode int
@@ -68,21 +56,19 @@ func TestCreateShortLink(t *testing.T) {
 		},
 	}
 
-	interactor := usecases.NewInteractor(config.DefaultBasicPath)
-	conntroller := NewController(interactor)
-
-	router := gin.New()
-	router.Use(gin.Logger(), gin.Recovery())
-
-	router.POST("/", conntroller.CreateShortLink)
-	router.GET(fmt.Sprintf("/:%s", ID), conntroller.GetShortLink)
-
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			request := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(tt.request))
-			w := httptest.NewRecorder()
+			cfg := config.Config{
+				BasicPath: config.DefaultBasicPath,
+			}
+			interactor := usecases.NewInteractor(cfg.BasicPath)
+			conntroller := NewController(interactor)
 
-			router.ServeHTTP(w, request)
+			w := httptest.NewRecorder()
+			ctx, _ := gin.CreateTestContext(w)
+			ctx.Request = httptest.NewRequest(http.MethodPost, "/", strings.NewReader(tt.request))
+
+			conntroller.CreateShortLink(ctx)
 
 			result := w.Result()
 
@@ -125,7 +111,7 @@ func TestGetShortLink(t *testing.T) {
 				path:  "",
 			},
 			want: want{
-				stastusCode: http.StatusNotFound,
+				stastusCode: http.StatusBadRequest,
 				location:    "",
 			},
 		},
@@ -153,36 +139,34 @@ func TestGetShortLink(t *testing.T) {
 		},
 	}
 
-	interactor := usecases.NewInteractor(config.DefaultBasicPath)
-	conntroller := NewController(interactor)
-
-	router := gin.New()
-	router.Use(gin.Logger(), gin.Recovery())
-
-	router.POST("/", conntroller.CreateShortLink)
-	router.GET(fmt.Sprintf("/:%s", ID), conntroller.GetShortLink)
-
-	request := httptest.NewRequest(http.MethodPost, "/", strings.NewReader("https://ya.ru"))
-	w := httptest.NewRecorder()
-
-	router.ServeHTTP(w, request)
-
-	result := w.Result()
-
-	assert.Equal(t, http.StatusCreated, result.StatusCode)
-	assert.Equal(t, "text/plain", result.Header.Get("Content-Type"))
-
-	resultBody, err := io.ReadAll(result.Body)
-	assert.NoError(t, err)
-	err = result.Body.Close()
-	assert.NoError(t, err)
-
-	parsedURL, err := url.ParseRequestURI(string(resultBody))
-	assert.NoError(t, err)
-	assert.NotEmpty(t, parsedURL)
-
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			cfg := config.Config{
+				BasicPath: config.DefaultBasicPath,
+			}
+			interactor := usecases.NewInteractor(cfg.BasicPath)
+			conntroller := NewController(interactor)
+
+			w := httptest.NewRecorder()
+			ctx, _ := gin.CreateTestContext(w)
+			ctx.Request = httptest.NewRequest(http.MethodPost, "/", strings.NewReader("https://ya.ru"))
+
+			conntroller.CreateShortLink(ctx)
+
+			result := w.Result()
+
+			assert.Equal(t, http.StatusCreated, result.StatusCode)
+			assert.Equal(t, "text/plain", result.Header.Get("Content-Type"))
+
+			resultBody, err := io.ReadAll(result.Body)
+			assert.NoError(t, err)
+			err = result.Body.Close()
+			assert.NoError(t, err)
+
+			parsedURL, err := url.ParseRequestURI(string(resultBody))
+			assert.NoError(t, err)
+			assert.NotEmpty(t, parsedURL)
+
 			var id string
 			if tt.request.valid {
 				id = path.Base(parsedURL.Path)
@@ -190,12 +174,19 @@ func TestGetShortLink(t *testing.T) {
 				id = tt.request.path
 			}
 
-			request := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/%s", id), nil)
-			w := httptest.NewRecorder()
+			w = httptest.NewRecorder()
+			ctx, _ = gin.CreateTestContext(w)
+			ctx.Request = httptest.NewRequest(http.MethodGet, fmt.Sprintf("/:%s", ID), nil)
+			ctx.Params = []gin.Param{
+				{
+					Key:   ID,
+					Value: id,
+				},
+			}
 
-			router.ServeHTTP(w, request)
+			conntroller.GetShortLink(ctx)
 
-			result := w.Result()
+			result = w.Result()
 
 			err = result.Body.Close()
 			assert.NoError(t, err)

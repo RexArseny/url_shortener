@@ -1,11 +1,10 @@
 package config
 
 import (
+	"flag"
 	"fmt"
-	"net/url"
-	"path"
 
-	"github.com/spf13/pflag"
+	env "github.com/caarlos0/env/v11"
 )
 
 const (
@@ -18,28 +17,22 @@ type Config struct {
 	BasicPath     string `env:"BASE_URL"`
 }
 
-func Init() *Config {
+func Init() (*Config, error) {
 	var cfg Config
-	pflag.StringVarP(&cfg.ServerAddress, "a", "a", DefaultServerAddress, "server address")
-	pflag.StringVarP(&cfg.BasicPath, "b", "b", DefaultBasicPath, "basic path")
-	return &cfg
-}
 
-func (c *Config) GetURLPrefix() (*string, error) {
-	serverAddress, err := url.ParseRequestURI(c.ServerAddress)
+	flag.StringVar(&cfg.ServerAddress, "a", DefaultServerAddress, "server address")
+	flag.StringVar(&cfg.BasicPath, "b", DefaultBasicPath, "basic path")
+
+	flag.Parse()
+
+	err := env.Parse(&cfg)
 	if err != nil {
-		return nil, fmt.Errorf("invalid server address: %s", err)
+		return nil, fmt.Errorf("can not parse env: %s", err)
 	}
-	basicPath, err := url.ParseRequestURI(c.BasicPath)
-	if err != nil {
-		return nil, fmt.Errorf("invalid basic path: %s", err)
+
+	if cfg.BasicPath[len(cfg.BasicPath)-1] == '/' {
+		cfg.BasicPath = cfg.BasicPath[:len(cfg.BasicPath)-1]
 	}
-	if serverAddress.String() != basicPath.Host {
-		return nil, fmt.Errorf("server address does not correspond with basic path")
-	}
-	if c.BasicPath[len(c.BasicPath)-1] == '/' {
-		c.BasicPath = c.BasicPath[:len(c.BasicPath)-1]
-	}
-	urlPrefix := path.Base(basicPath.Path)
-	return &urlPrefix, nil
+
+	return &cfg, nil
 }

@@ -1,37 +1,38 @@
 package main
 
 import (
-	"fmt"
+	"net/http"
+	"time"
 
 	"github.com/RexArseny/url_shortener/internal/app/config"
 	"github.com/RexArseny/url_shortener/internal/app/controllers"
+	"github.com/RexArseny/url_shortener/internal/app/routers"
 	"github.com/RexArseny/url_shortener/internal/app/usecases"
-	env "github.com/caarlos0/env/v11"
-	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
-	"github.com/spf13/pflag"
 )
 
 func main() {
-	cfg := config.Init()
-	pflag.Parse()
-	err := env.Parse(cfg)
+	cfg, err := config.Init()
 	if err != nil {
-		logrus.Fatalf("can not parse env: %s", err)
-	}
-	prefix, err := cfg.GetURLPrefix()
-	if err != nil {
-		logrus.Fatalf("invallid arguments: %s", err)
+		logrus.Fatalf("can not init config: %s", err)
 	}
 
 	interactor := usecases.NewInteractor(cfg.BasicPath)
 	controller := controllers.NewController(interactor)
+	router, err := routers.NewRouter(cfg, controller)
+	if err != nil {
+		logrus.Fatalf("can not init router: %s", err)
+	}
 
-	router := gin.New()
-	router.Use(gin.Logger(), gin.Recovery())
-
-	router.POST("/", controller.CreateShortLink)
-	router.GET(fmt.Sprintf("%s/:%s", *prefix, controllers.ID), controller.GetShortLink)
-
-	router.Run(cfg.ServerAddress)
+	s := &http.Server{
+		Addr:           cfg.ServerAddress,
+		Handler:        router,
+		ReadTimeout:    10 * time.Second,
+		WriteTimeout:   10 * time.Second,
+		MaxHeaderBytes: 1 << 20,
+	}
+	err = s.ListenAndServe()
+	if err != nil {
+		logrus.Fatalf("can not listen and serve: %s", err)
+	}
 }

@@ -6,20 +6,8 @@ import (
 	"testing"
 
 	"github.com/RexArseny/url_shortener/internal/app/config"
-	"github.com/RexArseny/url_shortener/internal/app/models"
 	"github.com/stretchr/testify/assert"
 )
-
-func TestNewInteractor(t *testing.T) {
-	expected := Interactor{
-		links:     models.NewLinks(),
-		basicPath: config.DefaultBasicPath,
-	}
-
-	actual := NewInteractor(config.DefaultBasicPath)
-
-	assert.Equal(t, expected, actual)
-}
 
 func TestCreateShortLink(t *testing.T) {
 	interactor := NewInteractor(config.DefaultBasicPath)
@@ -57,11 +45,11 @@ func TestGetShortLink(t *testing.T) {
 	assert.NotEmpty(t, parsedURL)
 
 	result1, err := interactor.GetShortLink("")
-	assert.NoError(t, err)
+	assert.Error(t, err)
 	assert.Nil(t, result1)
 
 	result2, err := interactor.GetShortLink("abc")
-	assert.NoError(t, err)
+	assert.Error(t, err)
 	assert.Nil(t, result2)
 
 	result3, err := interactor.GetShortLink(path.Base(parsedURL.Path))
