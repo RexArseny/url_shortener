@@ -37,22 +37,20 @@ func (i *Interactor) CreateShortLink(originalURL string) (*string, error) {
 		return &path, nil
 	}
 
-	shortLink = i.generateShortLink()
-
-	i.links.SetLink(originalURL, shortLink)
+	shortLink = i.generateShortLink(originalURL)
 
 	path := fmt.Sprintf("%s/%s", i.basicPath, shortLink)
 
 	return &path, nil
 }
 
-func (i *Interactor) generateShortLink() string {
+func (i *Interactor) generateShortLink(originalURL string) string {
 	for {
 		path := make([]rune, shortLinkPathLength)
 		for i := range path {
 			path[i] = letterRunes[rand.Intn(len(letterRunes))]
 		}
-		if _, ok := i.links.GetShortLink(string(path)); !ok {
+		if ok := i.links.SetLink(originalURL, string(path)); ok {
 			return string(path)
 		}
 	}

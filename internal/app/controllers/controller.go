@@ -5,16 +5,12 @@ import (
 	"net/http"
 
 	"github.com/RexArseny/url_shortener/internal/app/usecases"
+	"github.com/RexArseny/url_shortener/internal/app/utils"
 	"github.com/gin-gonic/gin"
-	"github.com/sirupsen/logrus"
+	"go.uber.org/zap"
 )
 
-const (
-	ID = "id"
-
-	invalidBody  = "invalid body"
-	serviceError = "service error"
-)
+const ID = "id"
 
 type Controller struct {
 	interactor usecases.Interactor
@@ -29,20 +25,19 @@ func NewController(interactor usecases.Interactor) Controller {
 func (c *Controller) CreateShortLink(ctx *gin.Context) {
 	data, err := io.ReadAll(ctx.Request.Body)
 	if err != nil {
-		ctx.String(http.StatusBadRequest, invalidBody)
+		ctx.String(http.StatusBadRequest, http.StatusText(http.StatusBadRequest))
 		return
 	}
 
 	result, err := c.interactor.CreateShortLink(string(data))
 	if err != nil {
-		logrus.Errorf("can not create short link: %s; request: %v", err, ctx.Request)
-		ctx.String(http.StatusBadRequest, invalidBody)
+		ctx.String(http.StatusBadRequest, http.StatusText(http.StatusBadRequest))
 		return
 	}
 
 	if result == nil || *result == "" {
-		logrus.Errorf("short link is empty; request: %v", ctx.Request)
-		ctx.String(http.StatusInternalServerError, serviceError)
+		utils.Logger.Error("Short link is empty", zap.Any("request", ctx.Request))
+		ctx.String(http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError))
 		return
 	}
 
@@ -55,14 +50,13 @@ func (c *Controller) GetShortLink(ctx *gin.Context) {
 
 	result, err := c.interactor.GetShortLink(data)
 	if err != nil {
-		logrus.Errorf("can not get short link: %s; request: %v", err, ctx.Request)
-		ctx.String(http.StatusBadRequest, invalidBody)
+		ctx.String(http.StatusBadRequest, http.StatusText(http.StatusBadRequest))
 		return
 	}
 
 	if result == nil || *result == "" {
-		logrus.Errorf("short link is empty; request: %v", ctx.Request)
-		ctx.String(http.StatusInternalServerError, serviceError)
+		utils.Logger.Error("Short link is empty", zap.Any("request", ctx.Request))
+		ctx.String(http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError))
 		return
 	}
 
