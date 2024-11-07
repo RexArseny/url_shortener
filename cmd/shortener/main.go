@@ -25,7 +25,7 @@ func main() {
 	}
 
 	interactor := usecases.NewInteractor(cfg.BasicPath)
-	controller := controllers.NewController(interactor, logger.Named("controller"))
+	controller := controllers.NewController(logger.Named("controller"), interactor)
 	router, err := routers.NewRouter(cfg, controller)
 	if err != nil {
 		logger.Fatal("Can not init router", zap.Error(err))

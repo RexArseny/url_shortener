@@ -68,7 +68,7 @@ func TestCreateShortLink(t *testing.T) {
 			}
 			logger := zap.Must(zap.NewProduction())
 			interactor := usecases.NewInteractor(cfg.BasicPath)
-			conntroller := controllers.NewController(interactor, logger.Named("controller"))
+			conntroller := controllers.NewController(logger.Named("controller"), interactor)
 			router, err := routers.NewRouter(&cfg, conntroller)
 			assert.NoError(t, err)
 
@@ -155,7 +155,7 @@ func TestGetShortLink(t *testing.T) {
 			}
 			logger := zap.Must(zap.NewProduction())
 			interactor := usecases.NewInteractor(cfg.BasicPath)
-			conntroller := controllers.NewController(interactor, logger.Named("controller"))
+			conntroller := controllers.NewController(logger.Named("controller"), interactor)
 			router, err := routers.NewRouter(&cfg, conntroller)
 			assert.NoError(t, err)
 

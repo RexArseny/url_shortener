@@ -63,7 +63,7 @@ func TestCreateShortLink(t *testing.T) {
 			}
 			logger := zap.Must(zap.NewProduction())
 			interactor := usecases.NewInteractor(cfg.BasicPath)
-			conntroller := NewController(interactor, logger.Named("controller"))
+			conntroller := NewController(logger.Named("controller"), interactor)
 
 			w := httptest.NewRecorder()
 			ctx, _ := gin.CreateTestContext(w)
@@ -147,7 +147,7 @@ func TestGetShortLink(t *testing.T) {
 			}
 			logger := zap.Must(zap.NewProduction())
 			interactor := usecases.NewInteractor(cfg.BasicPath)
-			conntroller := NewController(interactor, logger.Named("controller"))
+			conntroller := NewController(logger.Named("controller"), interactor)
 
 			w := httptest.NewRecorder()
 			ctx, _ := gin.CreateTestContext(w)

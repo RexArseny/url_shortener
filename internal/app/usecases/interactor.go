@@ -17,7 +17,7 @@ const (
 var (
 	letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
 
-	ErrorMaxGenerationRetries = errors.New("reached max generation retries")
+	ErrMaxGenerationRetries = errors.New("reached max generation retries")
 )
 
 type Interactor struct {
@@ -67,7 +67,7 @@ func (i *Interactor) generateShortLink(originalURL string) (*string, error) {
 		}
 		retry++
 	}
-	return nil, ErrorMaxGenerationRetries
+	return nil, ErrMaxGenerationRetries
 }
 
 func (i *Interactor) GetShortLink(shortLink string) (*string, error) {
