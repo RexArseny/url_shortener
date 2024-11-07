@@ -17,6 +17,7 @@ import (
 	"github.com/RexArseny/url_shortener/internal/app/usecases"
 	"github.com/gojek/heimdall/v7/httpclient"
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/zap"
 )
 
 func TestCreateShortLink(t *testing.T) {
@@ -65,8 +66,9 @@ func TestCreateShortLink(t *testing.T) {
 				ServerAddress: config.DefaultServerAddress,
 				BasicPath:     config.DefaultBasicPath,
 			}
+			logger := zap.Must(zap.NewProduction())
 			interactor := usecases.NewInteractor(cfg.BasicPath)
-			conntroller := controllers.NewController(interactor)
+			conntroller := controllers.NewController(interactor, logger.Named("controller"))
 			router, err := routers.NewRouter(&cfg, conntroller)
 			assert.NoError(t, err)
 
@@ -151,8 +153,9 @@ func TestGetShortLink(t *testing.T) {
 				ServerAddress: config.DefaultServerAddress,
 				BasicPath:     config.DefaultBasicPath,
 			}
+			logger := zap.Must(zap.NewProduction())
 			interactor := usecases.NewInteractor(cfg.BasicPath)
-			conntroller := controllers.NewController(interactor)
+			conntroller := controllers.NewController(interactor, logger.Named("controller"))
 			router, err := routers.NewRouter(&cfg, conntroller)
 			assert.NoError(t, err)
 

@@ -8,28 +8,27 @@ import (
 	"github.com/RexArseny/url_shortener/internal/app/controllers"
 	"github.com/RexArseny/url_shortener/internal/app/routers"
 	"github.com/RexArseny/url_shortener/internal/app/usecases"
-	"github.com/RexArseny/url_shortener/internal/app/utils"
 	"go.uber.org/zap"
 )
 
 func main() {
-	utils.InitLogger()
+	logger := zap.Must(zap.NewProduction())
 	defer func() {
-		if err := utils.Logger.Sync(); err != nil {
+		if err := logger.Sync(); err != nil {
 			log.Fatalf("Logger sync failed: %s", err)
 		}
 	}()
 
 	cfg, err := config.Init()
 	if err != nil {
-		utils.Logger.Fatal("Can not init config", zap.Error(err))
+		logger.Fatal("Can not init config", zap.Error(err))
 	}
 
 	interactor := usecases.NewInteractor(cfg.BasicPath)
-	controller := controllers.NewController(interactor)
+	controller := controllers.NewController(interactor, logger.Named("controller"))
 	router, err := routers.NewRouter(cfg, controller)
 	if err != nil {
-		utils.Logger.Fatal("Can not init router", zap.Error(err))
+		logger.Fatal("Can not init router", zap.Error(err))
 	}
 
 	s := &http.Server{
@@ -38,6 +37,6 @@ func main() {
 	}
 	err = s.ListenAndServe()
 	if err != nil {
-		utils.Logger.Fatal("Can not listen and serve", zap.Error(err))
+		logger.Fatal("Can not listen and serve", zap.Error(err))
 	}
 }

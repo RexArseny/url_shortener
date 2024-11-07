@@ -1,11 +1,11 @@
 package controllers
 
 import (
+	"errors"
 	"io"
 	"net/http"
 
 	"github.com/RexArseny/url_shortener/internal/app/usecases"
-	"github.com/RexArseny/url_shortener/internal/app/utils"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 )
@@ -14,11 +14,13 @@ const ID = "id"
 
 type Controller struct {
 	interactor usecases.Interactor
+	logger     *zap.Logger
 }
 
-func NewController(interactor usecases.Interactor) Controller {
+func NewController(interactor usecases.Interactor, logger *zap.Logger) Controller {
 	return Controller{
 		interactor: interactor,
+		logger:     logger,
 	}
 }
 
@@ -31,12 +33,17 @@ func (c *Controller) CreateShortLink(ctx *gin.Context) {
 
 	result, err := c.interactor.CreateShortLink(string(data))
 	if err != nil {
+		if errors.Is(err, usecases.ErrorMaxGenerationRetries) {
+			c.logger.Error("Can not create short link", zap.Error(err))
+			ctx.String(http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError))
+			return
+		}
 		ctx.String(http.StatusBadRequest, http.StatusText(http.StatusBadRequest))
 		return
 	}
 
 	if result == nil || *result == "" {
-		utils.Logger.Error("Short link is empty", zap.Any("request", ctx.Request))
+		c.logger.Error("Short link is empty", zap.Any("request", ctx.Request))
 		ctx.String(http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError))
 		return
 	}
@@ -55,7 +62,7 @@ func (c *Controller) GetShortLink(ctx *gin.Context) {
 	}
 
 	if result == nil || *result == "" {
-		utils.Logger.Error("Short link is empty", zap.Any("request", ctx.Request))
+		c.logger.Error("Short link is empty", zap.Any("request", ctx.Request))
 		ctx.String(http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError))
 		return
 	}

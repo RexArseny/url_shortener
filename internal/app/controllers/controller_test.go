@@ -13,6 +13,7 @@ import (
 	"github.com/RexArseny/url_shortener/internal/app/usecases"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/zap"
 )
 
 func TestCreateShortLink(t *testing.T) {
@@ -60,8 +61,9 @@ func TestCreateShortLink(t *testing.T) {
 			cfg := config.Config{
 				BasicPath: config.DefaultBasicPath,
 			}
+			logger := zap.Must(zap.NewProduction())
 			interactor := usecases.NewInteractor(cfg.BasicPath)
-			conntroller := NewController(interactor)
+			conntroller := NewController(interactor, logger.Named("controller"))
 
 			w := httptest.NewRecorder()
 			ctx, _ := gin.CreateTestContext(w)
@@ -143,8 +145,9 @@ func TestGetShortLink(t *testing.T) {
 			cfg := config.Config{
 				BasicPath: config.DefaultBasicPath,
 			}
+			logger := zap.Must(zap.NewProduction())
 			interactor := usecases.NewInteractor(cfg.BasicPath)
-			conntroller := NewController(interactor)
+			conntroller := NewController(interactor, logger.Named("controller"))
 
 			w := httptest.NewRecorder()
 			ctx, _ := gin.CreateTestContext(w)
