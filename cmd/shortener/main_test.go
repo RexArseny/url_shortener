@@ -13,6 +13,7 @@ import (
 
 	"github.com/RexArseny/url_shortener/internal/app/config"
 	"github.com/RexArseny/url_shortener/internal/app/controllers"
+	"github.com/RexArseny/url_shortener/internal/app/middlewares"
 	"github.com/RexArseny/url_shortener/internal/app/routers"
 	"github.com/RexArseny/url_shortener/internal/app/usecases"
 	"github.com/gojek/heimdall/v7/httpclient"
@@ -69,7 +70,8 @@ func TestCreateShortLink(t *testing.T) {
 			logger := zap.Must(zap.NewProduction())
 			interactor := usecases.NewInteractor(cfg.BasicPath)
 			conntroller := controllers.NewController(logger.Named("controller"), interactor)
-			router, err := routers.NewRouter(&cfg, conntroller)
+			middleware := middlewares.NewMiddleware(logger.Named("middleware"))
+			router, err := routers.NewRouter(&cfg, conntroller, middleware)
 			assert.NoError(t, err)
 
 			server := httptest.NewServer(router)
@@ -156,7 +158,8 @@ func TestGetShortLink(t *testing.T) {
 			logger := zap.Must(zap.NewProduction())
 			interactor := usecases.NewInteractor(cfg.BasicPath)
 			conntroller := controllers.NewController(logger.Named("controller"), interactor)
-			router, err := routers.NewRouter(&cfg, conntroller)
+			middleware := middlewares.NewMiddleware(logger.Named("middleware"))
+			router, err := routers.NewRouter(&cfg, conntroller, middleware)
 			assert.NoError(t, err)
 
 			server := httptest.NewServer(router)
