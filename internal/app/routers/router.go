@@ -12,7 +12,10 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func NewRouter(cfg *config.Config, controller controllers.Controller, middleware middlewares.Middleware) (*gin.Engine, error) {
+func NewRouter(
+	cfg *config.Config,
+	controller controllers.Controller,
+	middleware middlewares.Middleware) (*gin.Engine, error) {
 	prefix, err := getURLPrefix(cfg)
 	if err != nil {
 		return nil, err

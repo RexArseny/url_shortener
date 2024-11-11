@@ -1,6 +1,7 @@
 package logger
 
 import (
+	"fmt"
 	"time"
 
 	"go.uber.org/zap"
@@ -13,5 +14,9 @@ func InitLogger() (*zap.Logger, error) {
 	config.EncoderConfig.TimeKey = "time"
 	config.EncoderConfig.EncodeTime = zapcore.TimeEncoderOfLayout(time.RFC3339)
 
-	return config.Build()
+	log, err := config.Build()
+	if err != nil {
+		return nil, fmt.Errorf("can not build logger: %w", err)
+	}
+	return log, nil
 }

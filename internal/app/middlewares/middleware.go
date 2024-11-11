@@ -15,7 +15,6 @@ func NewMiddleware(logger *zap.Logger) Middleware {
 	return Middleware{
 		logger: logger,
 	}
-
 }
 
 func (m *Middleware) Logger() gin.HandlerFunc {

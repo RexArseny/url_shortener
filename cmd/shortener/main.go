@@ -14,27 +14,27 @@ import (
 )
 
 func main() {
-	logger, err := logger.InitLogger()
+	mainLogger, err := logger.InitLogger()
 	if err != nil {
 		log.Fatalf("Can not init logger: %s", err)
 	}
 	defer func() {
-		if err := logger.Sync(); err != nil {
+		if err := mainLogger.Sync(); err != nil {
 			log.Fatalf("Logger sync failed: %s", err)
 		}
 	}()
 
 	cfg, err := config.Init()
 	if err != nil {
-		logger.Fatal("Can not init config", zap.Error(err))
+		mainLogger.Fatal("Can not init config", zap.Error(err))
 	}
 
 	interactor := usecases.NewInteractor(cfg.BasicPath)
-	controller := controllers.NewController(logger.Named("controller"), interactor)
-	middleware := middlewares.NewMiddleware(logger.Named("middleware"))
+	controller := controllers.NewController(mainLogger.Named("controller"), interactor)
+	middleware := middlewares.NewMiddleware(mainLogger.Named("middleware"))
 	router, err := routers.NewRouter(cfg, controller, middleware)
 	if err != nil {
-		logger.Fatal("Can not init router", zap.Error(err))
+		mainLogger.Fatal("Can not init router", zap.Error(err))
 	}
 
 	s := &http.Server{
@@ -43,6 +43,6 @@ func main() {
 	}
 	err = s.ListenAndServe()
 	if err != nil {
-		logger.Fatal("Can not listen and serve", zap.Error(err))
+		mainLogger.Fatal("Can not listen and serve", zap.Error(err))
 	}
 }
