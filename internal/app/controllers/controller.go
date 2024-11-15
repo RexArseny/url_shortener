@@ -1,10 +1,12 @@
 package controllers
 
 import (
+	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
 
+	"github.com/RexArseny/url_shortener/internal/app/models"
 	"github.com/RexArseny/url_shortener/internal/app/usecases"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
@@ -50,6 +52,42 @@ func (c *Controller) CreateShortLink(ctx *gin.Context) {
 
 	ctx.Writer.Header().Set("Content-Type", "text/plain")
 	ctx.String(http.StatusCreated, *result)
+}
+
+func (c *Controller) CreateShortLinkJSON(ctx *gin.Context) {
+	data, err := io.ReadAll(ctx.Request.Body)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": http.StatusText(http.StatusBadRequest)})
+		return
+	}
+
+	var request models.ShortenRequest
+	err = json.Unmarshal(data, &request)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": http.StatusText(http.StatusBadRequest)})
+		return
+	}
+
+	result, err := c.interactor.CreateShortLink(request.URL)
+	if err != nil {
+		if errors.Is(err, usecases.ErrMaxGenerationRetries) {
+			c.logger.Error("Can not create short link", zap.Error(err))
+			ctx.JSON(http.StatusInternalServerError, gin.H{"error": http.StatusText(http.StatusInternalServerError)})
+			return
+		}
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": http.StatusText(http.StatusBadRequest)})
+		return
+	}
+
+	if result == nil || *result == "" {
+		c.logger.Error("Short link is empty", zap.Any("request", ctx.Request))
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": http.StatusText(http.StatusInternalServerError)})
+		return
+	}
+
+	ctx.JSON(http.StatusCreated, models.ShortenResponse{
+		Result: *result,
+	})
 }
 
 func (c *Controller) GetShortLink(ctx *gin.Context) {

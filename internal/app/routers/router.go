@@ -25,6 +25,7 @@ func NewRouter(
 	router.Use(gin.Recovery(), middleware.Logger())
 
 	router.POST("/", controller.CreateShortLink)
+	router.POST("/api/shorten", controller.CreateShortLinkJSON)
 	router.GET(fmt.Sprintf("%s/:%s", *prefix, controllers.ID), controller.GetShortLink)
 
 	return router, nil
