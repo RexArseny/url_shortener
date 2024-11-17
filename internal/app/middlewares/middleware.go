@@ -2,6 +2,7 @@ package middlewares
 
 import (
 	"compress/gzip"
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -47,11 +48,19 @@ type gzipWriter struct {
 }
 
 func (g *gzipWriter) WriteString(s string) (int, error) {
-	return g.writer.Write([]byte(s))
+	n, err := g.writer.Write([]byte(s))
+	if err != nil {
+		return 0, fmt.Errorf("can not write string: %w", err)
+	}
+	return n, nil
 }
 
 func (g *gzipWriter) Write(data []byte) (int, error) {
-	return g.writer.Write(data)
+	n, err := g.writer.Write(data)
+	if err != nil {
+		return 0, fmt.Errorf("can not write string: %w", err)
+	}
+	return n, nil
 }
 
 func (m *Middleware) Compressor() gin.HandlerFunc {
