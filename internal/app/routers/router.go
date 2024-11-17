@@ -22,7 +22,7 @@ func NewRouter(
 	}
 
 	router := gin.New()
-	router.Use(gin.Recovery(), middleware.Logger())
+	router.Use(gin.Recovery(), middleware.Logger(), middleware.Compressor())
 
 	router.POST("/", controller.CreateShortLink)
 	router.POST("/api/shorten", controller.CreateShortLinkJSON)
