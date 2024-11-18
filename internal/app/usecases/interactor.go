@@ -25,24 +25,24 @@ var (
 
 type Interactor struct {
 	links     *models.Links
-	basicPath string
 	file      *os.File
+	basicPath string
 }
 
 func NewInteractor(basicPath string, fileStoragePath string) (*Interactor, error) {
-	file, err := os.OpenFile(fileStoragePath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
+	file, err := os.OpenFile(fileStoragePath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0o644)
 	if err != nil {
 		return nil, fmt.Errorf("can not open file: %w", err)
 	}
 	links := models.NewLinks()
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
-		var url models.URL
-		err = json.Unmarshal(scanner.Bytes(), &url)
+		var data models.URL
+		err = json.Unmarshal(scanner.Bytes(), &data)
 		if err != nil {
 			return nil, fmt.Errorf("can not unmarshal data from file: %w", err)
 		}
-		links.SetLink(url.OriginalURL, url.ShortURL)
+		links.SetLink(data.OriginalURL, data.ShortURL)
 	}
 	return &Interactor{
 		links:     links,

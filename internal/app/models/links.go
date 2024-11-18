@@ -3,9 +3,9 @@ package models
 import "sync"
 
 type URL struct {
-	ID          int    `json:"id"`
 	ShortURL    string `json:"short_url"`
 	OriginalURL string `json:"original_url"`
+	ID          int    `json:"id"`
 }
 
 type Links struct {
