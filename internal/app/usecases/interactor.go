@@ -30,7 +30,7 @@ type Interactor struct {
 }
 
 func NewInteractor(basicPath string, fileStoragePath string) (*Interactor, error) {
-	file, err := os.OpenFile(fileStoragePath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0o644)
+	file, err := os.OpenFile(fileStoragePath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0o600)
 	if err != nil {
 		return nil, fmt.Errorf("can not open file: %w", err)
 	}
