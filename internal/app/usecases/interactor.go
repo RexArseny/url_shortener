@@ -15,6 +15,7 @@ import (
 const (
 	shortLinkPathLength   = 8
 	linkGenerationRetries = 5
+	fileMode              = 0o600
 )
 
 var (
@@ -30,7 +31,7 @@ type Interactor struct {
 }
 
 func NewInteractor(basicPath string, fileStoragePath string) (*Interactor, error) {
-	file, err := os.OpenFile(fileStoragePath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0o600)
+	file, err := os.OpenFile(fileStoragePath, os.O_RDWR|os.O_CREATE|os.O_APPEND, fileMode)
 	if err != nil {
 		return nil, fmt.Errorf("can not open file: %w", err)
 	}
