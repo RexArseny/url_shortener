@@ -29,7 +29,11 @@ func main() {
 		mainLogger.Fatal("Can not init config", zap.Error(err))
 	}
 
-	interactor := usecases.NewInteractor(cfg.BasicPath)
+	interactor, err := usecases.NewInteractor(cfg.BasicPath, cfg.FileStoragePath)
+	if err != nil {
+		mainLogger.Fatal("Can not init interactor", zap.Error(err))
+	}
+
 	controller := controllers.NewController(mainLogger.Named("controller"), interactor)
 	middleware := middlewares.NewMiddleware(mainLogger.Named("middleware"))
 	router, err := routers.NewRouter(cfg, controller, middleware)

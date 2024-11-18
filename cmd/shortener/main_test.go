@@ -65,11 +65,13 @@ func TestCreateShortLink(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cfg := config.Config{
-				ServerAddress: config.DefaultServerAddress,
-				BasicPath:     config.DefaultBasicPath,
+				ServerAddress:   config.DefaultServerAddress,
+				BasicPath:       config.DefaultBasicPath,
+				FileStoragePath: config.DefaultFileStoragePath,
 			}
 			logger := zap.Must(zap.NewProduction())
-			interactor := usecases.NewInteractor(cfg.BasicPath)
+			interactor, err := usecases.NewInteractor(cfg.BasicPath, cfg.FileStoragePath)
+			assert.NoError(t, err)
 			conntroller := controllers.NewController(logger.Named("controller"), interactor)
 			middleware := middlewares.NewMiddleware(logger.Named("middleware"))
 			router, err := routers.NewRouter(&cfg, conntroller, middleware)
@@ -153,11 +155,13 @@ func TestCreateShortLinkJSON(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cfg := config.Config{
-				ServerAddress: config.DefaultServerAddress,
-				BasicPath:     config.DefaultBasicPath,
+				ServerAddress:   config.DefaultServerAddress,
+				BasicPath:       config.DefaultBasicPath,
+				FileStoragePath: config.DefaultFileStoragePath,
 			}
 			logger := zap.Must(zap.NewProduction())
-			interactor := usecases.NewInteractor(cfg.BasicPath)
+			interactor, err := usecases.NewInteractor(cfg.BasicPath, cfg.FileStoragePath)
+			assert.NoError(t, err)
 			conntroller := controllers.NewController(logger.Named("controller"), interactor)
 			middleware := middlewares.NewMiddleware(logger.Named("middleware"))
 			router, err := routers.NewRouter(&cfg, conntroller, middleware)
@@ -242,11 +246,13 @@ func TestGetShortLink(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cfg := config.Config{
-				ServerAddress: config.DefaultServerAddress,
-				BasicPath:     config.DefaultBasicPath,
+				ServerAddress:   config.DefaultServerAddress,
+				BasicPath:       config.DefaultBasicPath,
+				FileStoragePath: config.DefaultFileStoragePath,
 			}
 			logger := zap.Must(zap.NewProduction())
-			interactor := usecases.NewInteractor(cfg.BasicPath)
+			interactor, err := usecases.NewInteractor(cfg.BasicPath, cfg.FileStoragePath)
+			assert.NoError(t, err)
 			conntroller := controllers.NewController(logger.Named("controller"), interactor)
 			middleware := middlewares.NewMiddleware(logger.Named("middleware"))
 			router, err := routers.NewRouter(&cfg, conntroller, middleware)

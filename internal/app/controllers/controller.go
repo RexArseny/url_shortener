@@ -16,10 +16,10 @@ const ID = "id"
 
 type Controller struct {
 	logger     *zap.Logger
-	interactor usecases.Interactor
+	interactor *usecases.Interactor
 }
 
-func NewController(logger *zap.Logger, interactor usecases.Interactor) Controller {
+func NewController(logger *zap.Logger, interactor *usecases.Interactor) Controller {
 	return Controller{
 		logger:     logger,
 		interactor: interactor,

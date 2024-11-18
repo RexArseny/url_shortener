@@ -1,10 +1,13 @@
 package usecases
 
 import (
+	"bufio"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math/rand"
 	"net/url"
+	"os"
 
 	"github.com/RexArseny/url_shortener/internal/app/models"
 )
@@ -23,13 +26,37 @@ var (
 type Interactor struct {
 	links     *models.Links
 	basicPath string
+	file      *os.File
 }
 
-func NewInteractor(basicPath string) Interactor {
-	return Interactor{
-		links:     models.NewLinks(),
-		basicPath: basicPath,
+func NewInteractor(basicPath string, fileStoragePath string) (*Interactor, error) {
+	file, err := os.OpenFile(fileStoragePath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
+	if err != nil {
+		return nil, fmt.Errorf("can not open file: %w", err)
 	}
+	links := models.NewLinks()
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		var url models.URL
+		err = json.Unmarshal(scanner.Bytes(), &url)
+		if err != nil {
+			return nil, fmt.Errorf("can not unmarshal data from file: %w", err)
+		}
+		links.SetLink(url.OriginalURL, url.ShortURL)
+	}
+	return &Interactor{
+		links:     links,
+		basicPath: basicPath,
+		file:      file,
+	}, nil
+}
+
+func (i *Interactor) CloseFile() error {
+	err := i.file.Close()
+	if err != nil {
+		return fmt.Errorf("can not close file: %w", err)
+	}
+	return nil
 }
 
 func (i *Interactor) CreateShortLink(originalURL string) (*string, error) {
@@ -61,8 +88,22 @@ func (i *Interactor) generateShortLink(originalURL string) (*string, error) {
 		for i := range path {
 			path[i] = letterRunes[rand.Intn(len(letterRunes))]
 		}
-		if ok := i.links.SetLink(originalURL, string(path)); ok {
+		if id, ok := i.links.SetLink(originalURL, string(path)); ok {
 			shortLink := string(path)
+
+			data, err := json.Marshal(models.URL{
+				ID:          id,
+				ShortURL:    shortLink,
+				OriginalURL: originalURL,
+			})
+			if err != nil {
+				return nil, fmt.Errorf("can not marshal data: %w", err)
+			}
+			_, err = fmt.Fprintf(i.file, "%s\n", data)
+			if err != nil {
+				return nil, fmt.Errorf("can not write data to file: %w", err)
+			}
+
 			return &shortLink, nil
 		}
 		retry++

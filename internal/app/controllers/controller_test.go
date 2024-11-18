@@ -60,10 +60,12 @@ func TestCreateShortLink(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cfg := config.Config{
-				BasicPath: config.DefaultBasicPath,
+				BasicPath:       config.DefaultBasicPath,
+				FileStoragePath: config.DefaultFileStoragePath,
 			}
 			logger := zap.Must(zap.NewProduction())
-			interactor := usecases.NewInteractor(cfg.BasicPath)
+			interactor, err := usecases.NewInteractor(cfg.BasicPath, cfg.FileStoragePath)
+			assert.NoError(t, err)
 			conntroller := NewController(logger.Named("controller"), interactor)
 
 			w := httptest.NewRecorder()
@@ -144,10 +146,12 @@ func TestCreateShortLinkJSON(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cfg := config.Config{
-				BasicPath: config.DefaultBasicPath,
+				BasicPath:       config.DefaultBasicPath,
+				FileStoragePath: config.DefaultFileStoragePath,
 			}
 			logger := zap.Must(zap.NewProduction())
-			interactor := usecases.NewInteractor(cfg.BasicPath)
+			interactor, err := usecases.NewInteractor(cfg.BasicPath, cfg.FileStoragePath)
+			assert.NoError(t, err)
 			conntroller := NewController(logger.Named("controller"), interactor)
 
 			w := httptest.NewRecorder()
@@ -229,10 +233,12 @@ func TestGetShortLink(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cfg := config.Config{
-				BasicPath: config.DefaultBasicPath,
+				BasicPath:       config.DefaultBasicPath,
+				FileStoragePath: config.DefaultFileStoragePath,
 			}
 			logger := zap.Must(zap.NewProduction())
-			interactor := usecases.NewInteractor(cfg.BasicPath)
+			interactor, err := usecases.NewInteractor(cfg.BasicPath, cfg.FileStoragePath)
+			assert.NoError(t, err)
 			conntroller := NewController(logger.Named("controller"), interactor)
 
 			w := httptest.NewRecorder()

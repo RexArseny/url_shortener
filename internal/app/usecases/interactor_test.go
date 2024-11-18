@@ -10,7 +10,8 @@ import (
 )
 
 func TestCreateShortLink(t *testing.T) {
-	interactor := NewInteractor(config.DefaultBasicPath)
+	interactor, err := NewInteractor(config.DefaultBasicPath, config.DefaultFileStoragePath)
+	assert.NoError(t, err)
 
 	result1, err := interactor.CreateShortLink("")
 	assert.Error(t, err)
@@ -34,7 +35,8 @@ func TestCreateShortLink(t *testing.T) {
 }
 
 func TestGetShortLink(t *testing.T) {
-	interactor := NewInteractor(config.DefaultBasicPath)
+	interactor, err := NewInteractor(config.DefaultBasicPath, config.DefaultFileStoragePath)
+	assert.NoError(t, err)
 
 	link, err := interactor.CreateShortLink("https://ya.ru")
 	assert.NoError(t, err)

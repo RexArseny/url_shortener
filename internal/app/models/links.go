@@ -2,10 +2,17 @@ package models
 
 import "sync"
 
+type URL struct {
+	ID          int    `json:"id"`
+	ShortURL    string `json:"short_url"`
+	OriginalURL string `json:"original_url"`
+}
+
 type Links struct {
 	m            *sync.Mutex
 	shortLinks   map[string]string
 	originalURLs map[string]string
+	currentID    int
 }
 
 func NewLinks() *Links {
@@ -30,16 +37,17 @@ func (l *Links) GetOriginalURL(shortLink string) (string, bool) {
 	return originalURL, ok
 }
 
-func (l *Links) SetLink(originalURL string, shortLink string) bool {
+func (l *Links) SetLink(originalURL string, shortLink string) (int, bool) {
 	l.m.Lock()
 	defer l.m.Unlock()
 	if _, ok := l.shortLinks[originalURL]; ok {
-		return false
+		return 0, false
 	}
 	if _, ok := l.originalURLs[shortLink]; ok {
-		return false
+		return 0, false
 	}
 	l.shortLinks[originalURL] = shortLink
 	l.originalURLs[shortLink] = originalURL
-	return true
+	l.currentID++
+	return l.currentID, true
 }
