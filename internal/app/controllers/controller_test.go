@@ -11,10 +11,11 @@ import (
 	"testing"
 
 	"github.com/RexArseny/url_shortener/internal/app/config"
+	"github.com/RexArseny/url_shortener/internal/app/logger"
+	"github.com/RexArseny/url_shortener/internal/app/models"
 	"github.com/RexArseny/url_shortener/internal/app/usecases"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
-	"go.uber.org/zap"
 )
 
 func TestCreateShortLink(t *testing.T) {
@@ -60,12 +61,11 @@ func TestCreateShortLink(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cfg := config.Config{
-				BasicPath:       config.DefaultBasicPath,
-				FileStoragePath: config.DefaultFileStoragePath,
+				BasicPath: config.DefaultBasicPath,
 			}
-			logger := zap.Must(zap.NewProduction())
-			interactor, err := usecases.NewInteractor(cfg.BasicPath, cfg.FileStoragePath)
+			logger, err := logger.InitLogger()
 			assert.NoError(t, err)
+			interactor := usecases.NewInteractor(cfg.BasicPath, models.NewLinks())
 			conntroller := NewController(logger.Named("controller"), interactor)
 
 			w := httptest.NewRecorder()
@@ -146,12 +146,11 @@ func TestCreateShortLinkJSON(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cfg := config.Config{
-				BasicPath:       config.DefaultBasicPath,
-				FileStoragePath: config.DefaultFileStoragePath,
+				BasicPath: config.DefaultBasicPath,
 			}
-			logger := zap.Must(zap.NewProduction())
-			interactor, err := usecases.NewInteractor(cfg.BasicPath, cfg.FileStoragePath)
+			logger, err := logger.InitLogger()
 			assert.NoError(t, err)
+			interactor := usecases.NewInteractor(cfg.BasicPath, models.NewLinks())
 			conntroller := NewController(logger.Named("controller"), interactor)
 
 			w := httptest.NewRecorder()
@@ -233,12 +232,11 @@ func TestGetShortLink(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cfg := config.Config{
-				BasicPath:       config.DefaultBasicPath,
-				FileStoragePath: config.DefaultFileStoragePath,
+				BasicPath: config.DefaultBasicPath,
 			}
-			logger := zap.Must(zap.NewProduction())
-			interactor, err := usecases.NewInteractor(cfg.BasicPath, cfg.FileStoragePath)
+			logger, err := logger.InitLogger()
 			assert.NoError(t, err)
+			interactor := usecases.NewInteractor(cfg.BasicPath, models.NewLinks())
 			conntroller := NewController(logger.Named("controller"), interactor)
 
 			w := httptest.NewRecorder()

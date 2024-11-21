@@ -16,10 +16,10 @@ const ID = "id"
 
 type Controller struct {
 	logger     *zap.Logger
-	interactor *usecases.Interactor
+	interactor usecases.Interactor
 }
 
-func NewController(logger *zap.Logger, interactor *usecases.Interactor) Controller {
+func NewController(logger *zap.Logger, interactor usecases.Interactor) Controller {
 	return Controller{
 		logger:     logger,
 		interactor: interactor,
@@ -36,7 +36,7 @@ func (c *Controller) CreateShortLink(ctx *gin.Context) {
 	result, err := c.interactor.CreateShortLink(string(data))
 	if err != nil {
 		if errors.Is(err, usecases.ErrMaxGenerationRetries) {
-			c.logger.Error("Can not create short link", zap.Error(err))
+			c.logger.Error("Can not create short link, max short link generation retries reached", zap.Error(err))
 			ctx.String(http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError))
 			return
 		}

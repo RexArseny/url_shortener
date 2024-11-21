@@ -1,13 +1,10 @@
 package usecases
 
 import (
-	"bufio"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"math/rand"
 	"net/url"
-	"os"
 
 	"github.com/RexArseny/url_shortener/internal/app/models"
 )
@@ -25,39 +22,15 @@ var (
 )
 
 type Interactor struct {
-	links     *models.Links
-	file      *os.File
-	basicPath string
+	repository models.Repository
+	basicPath  string
 }
 
-func NewInteractor(basicPath string, fileStoragePath string) (*Interactor, error) {
-	file, err := os.OpenFile(fileStoragePath, os.O_RDWR|os.O_CREATE|os.O_APPEND, fileMode)
-	if err != nil {
-		return nil, fmt.Errorf("can not open file: %w", err)
+func NewInteractor(basicPath string, repository models.Repository) Interactor {
+	return Interactor{
+		repository: repository,
+		basicPath:  basicPath,
 	}
-	links := models.NewLinks()
-	scanner := bufio.NewScanner(file)
-	for scanner.Scan() {
-		var data models.URL
-		err = json.Unmarshal(scanner.Bytes(), &data)
-		if err != nil {
-			return nil, fmt.Errorf("can not unmarshal data from file: %w", err)
-		}
-		links.SetLink(data.OriginalURL, data.ShortURL)
-	}
-	return &Interactor{
-		links:     links,
-		basicPath: basicPath,
-		file:      file,
-	}, nil
-}
-
-func (i *Interactor) CloseFile() error {
-	err := i.file.Close()
-	if err != nil {
-		return fmt.Errorf("can not close file: %w", err)
-	}
-	return nil
 }
 
 func (i *Interactor) CreateShortLink(originalURL string) (*string, error) {
@@ -66,7 +39,7 @@ func (i *Interactor) CreateShortLink(originalURL string) (*string, error) {
 		return nil, fmt.Errorf("provided string is not valid url: %w", err)
 	}
 
-	shortLink, ok := i.links.GetShortLink(originalURL)
+	shortLink, ok := i.repository.GetShortLink(originalURL)
 	if ok {
 		path := fmt.Sprintf("%s/%s", i.basicPath, shortLink)
 		return &path, nil
@@ -89,21 +62,12 @@ func (i *Interactor) generateShortLink(originalURL string) (*string, error) {
 		for i := range path {
 			path[i] = letterRunes[rand.Intn(len(letterRunes))]
 		}
-		if id, ok := i.links.SetLink(originalURL, string(path)); ok {
+		ok, err := i.repository.SetLink(originalURL, string(path))
+		if err != nil {
+			return nil, fmt.Errorf("can not set link: %w", err)
+		}
+		if ok {
 			shortLink := string(path)
-
-			data, err := json.Marshal(models.URL{
-				ID:          id,
-				ShortURL:    shortLink,
-				OriginalURL: originalURL,
-			})
-			if err != nil {
-				return nil, fmt.Errorf("can not marshal data: %w", err)
-			}
-			_, err = fmt.Fprintf(i.file, "%s\n", data)
-			if err != nil {
-				return nil, fmt.Errorf("can not write data to file: %w", err)
-			}
 
 			return &shortLink, nil
 		}
@@ -113,7 +77,7 @@ func (i *Interactor) generateShortLink(originalURL string) (*string, error) {
 }
 
 func (i *Interactor) GetShortLink(shortLink string) (*string, error) {
-	originalURL, ok := i.links.GetOriginalURL(shortLink)
+	originalURL, ok := i.repository.GetOriginalURL(shortLink)
 	if !ok {
 		return nil, errors.New("no url by short link")
 	}

@@ -14,12 +14,13 @@ import (
 
 	"github.com/RexArseny/url_shortener/internal/app/config"
 	"github.com/RexArseny/url_shortener/internal/app/controllers"
+	"github.com/RexArseny/url_shortener/internal/app/logger"
 	"github.com/RexArseny/url_shortener/internal/app/middlewares"
+	"github.com/RexArseny/url_shortener/internal/app/models"
 	"github.com/RexArseny/url_shortener/internal/app/routers"
 	"github.com/RexArseny/url_shortener/internal/app/usecases"
 	"github.com/gojek/heimdall/v7/httpclient"
 	"github.com/stretchr/testify/assert"
-	"go.uber.org/zap"
 )
 
 func TestCreateShortLink(t *testing.T) {
@@ -69,9 +70,18 @@ func TestCreateShortLink(t *testing.T) {
 				BasicPath:       config.DefaultBasicPath,
 				FileStoragePath: config.DefaultFileStoragePath,
 			}
-			logger := zap.Must(zap.NewProduction())
-			interactor, err := usecases.NewInteractor(cfg.BasicPath, cfg.FileStoragePath)
+			logger, err := logger.InitLogger()
 			assert.NoError(t, err)
+
+			var repository models.Repository
+			if cfg.FileStoragePath != "" {
+				repository, err = models.NewLinksWithFile(cfg.FileStoragePath)
+				assert.NoError(t, err)
+			} else {
+				repository = models.NewLinks()
+			}
+
+			interactor := usecases.NewInteractor(cfg.BasicPath, repository)
 			conntroller := controllers.NewController(logger.Named("controller"), interactor)
 			middleware := middlewares.NewMiddleware(logger.Named("middleware"))
 			router, err := routers.NewRouter(&cfg, conntroller, middleware)
@@ -159,9 +169,18 @@ func TestCreateShortLinkJSON(t *testing.T) {
 				BasicPath:       config.DefaultBasicPath,
 				FileStoragePath: config.DefaultFileStoragePath,
 			}
-			logger := zap.Must(zap.NewProduction())
-			interactor, err := usecases.NewInteractor(cfg.BasicPath, cfg.FileStoragePath)
+			logger, err := logger.InitLogger()
 			assert.NoError(t, err)
+
+			var repository models.Repository
+			if cfg.FileStoragePath != "" {
+				repository, err = models.NewLinksWithFile(cfg.FileStoragePath)
+				assert.NoError(t, err)
+			} else {
+				repository = models.NewLinks()
+			}
+
+			interactor := usecases.NewInteractor(cfg.BasicPath, repository)
 			conntroller := controllers.NewController(logger.Named("controller"), interactor)
 			middleware := middlewares.NewMiddleware(logger.Named("middleware"))
 			router, err := routers.NewRouter(&cfg, conntroller, middleware)
@@ -250,9 +269,18 @@ func TestGetShortLink(t *testing.T) {
 				BasicPath:       config.DefaultBasicPath,
 				FileStoragePath: config.DefaultFileStoragePath,
 			}
-			logger := zap.Must(zap.NewProduction())
-			interactor, err := usecases.NewInteractor(cfg.BasicPath, cfg.FileStoragePath)
+			logger, err := logger.InitLogger()
 			assert.NoError(t, err)
+
+			var repository models.Repository
+			if cfg.FileStoragePath != "" {
+				repository, err = models.NewLinksWithFile(cfg.FileStoragePath)
+				assert.NoError(t, err)
+			} else {
+				repository = models.NewLinks()
+			}
+
+			interactor := usecases.NewInteractor(cfg.BasicPath, repository)
 			conntroller := controllers.NewController(logger.Named("controller"), interactor)
 			middleware := middlewares.NewMiddleware(logger.Named("middleware"))
 			router, err := routers.NewRouter(&cfg, conntroller, middleware)
