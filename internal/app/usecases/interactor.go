@@ -12,7 +12,6 @@ import (
 const (
 	shortLinkPathLength   = 8
 	linkGenerationRetries = 5
-	fileMode              = 0o600
 )
 
 var (
