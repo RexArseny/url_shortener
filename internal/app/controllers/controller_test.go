@@ -63,10 +63,10 @@ func TestCreateShortLink(t *testing.T) {
 			cfg := config.Config{
 				BasicPath: config.DefaultBasicPath,
 			}
-			logger, err := logger.InitLogger()
+			testLogger, err := logger.InitLogger()
 			assert.NoError(t, err)
 			interactor := usecases.NewInteractor(cfg.BasicPath, models.NewLinks())
-			conntroller := NewController(logger.Named("controller"), interactor)
+			conntroller := NewController(testLogger.Named("controller"), interactor)
 
 			w := httptest.NewRecorder()
 			ctx, _ := gin.CreateTestContext(w)
@@ -148,10 +148,10 @@ func TestCreateShortLinkJSON(t *testing.T) {
 			cfg := config.Config{
 				BasicPath: config.DefaultBasicPath,
 			}
-			logger, err := logger.InitLogger()
+			testLogger, err := logger.InitLogger()
 			assert.NoError(t, err)
 			interactor := usecases.NewInteractor(cfg.BasicPath, models.NewLinks())
-			conntroller := NewController(logger.Named("controller"), interactor)
+			conntroller := NewController(testLogger.Named("controller"), interactor)
 
 			w := httptest.NewRecorder()
 			ctx, _ := gin.CreateTestContext(w)
@@ -234,10 +234,10 @@ func TestGetShortLink(t *testing.T) {
 			cfg := config.Config{
 				BasicPath: config.DefaultBasicPath,
 			}
-			logger, err := logger.InitLogger()
+			testLogger, err := logger.InitLogger()
 			assert.NoError(t, err)
 			interactor := usecases.NewInteractor(cfg.BasicPath, models.NewLinks())
-			conntroller := NewController(logger.Named("controller"), interactor)
+			conntroller := NewController(testLogger.Named("controller"), interactor)
 
 			w := httptest.NewRecorder()
 			ctx, _ := gin.CreateTestContext(w)

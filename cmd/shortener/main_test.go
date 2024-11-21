@@ -70,7 +70,7 @@ func TestCreateShortLink(t *testing.T) {
 				BasicPath:       config.DefaultBasicPath,
 				FileStoragePath: config.DefaultFileStoragePath,
 			}
-			logger, err := logger.InitLogger()
+			testLogger, err := logger.InitLogger()
 			assert.NoError(t, err)
 
 			var repository models.Repository
@@ -82,8 +82,8 @@ func TestCreateShortLink(t *testing.T) {
 			}
 
 			interactor := usecases.NewInteractor(cfg.BasicPath, repository)
-			conntroller := controllers.NewController(logger.Named("controller"), interactor)
-			middleware := middlewares.NewMiddleware(logger.Named("middleware"))
+			conntroller := controllers.NewController(testLogger.Named("controller"), interactor)
+			middleware := middlewares.NewMiddleware(testLogger.Named("middleware"))
 			router, err := routers.NewRouter(&cfg, conntroller, middleware)
 			assert.NoError(t, err)
 
@@ -169,7 +169,7 @@ func TestCreateShortLinkJSON(t *testing.T) {
 				BasicPath:       config.DefaultBasicPath,
 				FileStoragePath: config.DefaultFileStoragePath,
 			}
-			logger, err := logger.InitLogger()
+			testLogger, err := logger.InitLogger()
 			assert.NoError(t, err)
 
 			var repository models.Repository
@@ -181,8 +181,8 @@ func TestCreateShortLinkJSON(t *testing.T) {
 			}
 
 			interactor := usecases.NewInteractor(cfg.BasicPath, repository)
-			conntroller := controllers.NewController(logger.Named("controller"), interactor)
-			middleware := middlewares.NewMiddleware(logger.Named("middleware"))
+			conntroller := controllers.NewController(testLogger.Named("controller"), interactor)
+			middleware := middlewares.NewMiddleware(testLogger.Named("middleware"))
 			router, err := routers.NewRouter(&cfg, conntroller, middleware)
 			assert.NoError(t, err)
 
@@ -269,7 +269,7 @@ func TestGetShortLink(t *testing.T) {
 				BasicPath:       config.DefaultBasicPath,
 				FileStoragePath: config.DefaultFileStoragePath,
 			}
-			logger, err := logger.InitLogger()
+			testLogger, err := logger.InitLogger()
 			assert.NoError(t, err)
 
 			var repository models.Repository
@@ -281,8 +281,8 @@ func TestGetShortLink(t *testing.T) {
 			}
 
 			interactor := usecases.NewInteractor(cfg.BasicPath, repository)
-			conntroller := controllers.NewController(logger.Named("controller"), interactor)
-			middleware := middlewares.NewMiddleware(logger.Named("middleware"))
+			conntroller := controllers.NewController(testLogger.Named("controller"), interactor)
+			middleware := middlewares.NewMiddleware(testLogger.Named("middleware"))
 			router, err := routers.NewRouter(&cfg, conntroller, middleware)
 			assert.NoError(t, err)
 
