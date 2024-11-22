@@ -56,14 +56,6 @@ func NewLinksWithFile(fileStoragePath string) (*LinksWithFile, error) {
 	return linksWithFile, nil
 }
 
-func (l *LinksWithFile) GetShortLink(originalURL string) (string, bool) {
-	return l.Links.GetShortLink(originalURL)
-}
-
-func (l *LinksWithFile) GetOriginalURL(shortLink string) (string, bool) {
-	return l.Links.GetOriginalURL(shortLink)
-}
-
 func (l *LinksWithFile) SetLink(originalURL string, shortLink string) (bool, error) {
 	l.m.Lock()
 	defer l.m.Unlock()
