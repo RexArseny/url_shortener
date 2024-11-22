@@ -21,14 +21,14 @@ var (
 )
 
 type Interactor struct {
-	links     *models.Links
-	basicPath string
+	repository models.Repository
+	basicPath  string
 }
 
-func NewInteractor(basicPath string) Interactor {
+func NewInteractor(basicPath string, repository models.Repository) Interactor {
 	return Interactor{
-		links:     models.NewLinks(),
-		basicPath: basicPath,
+		repository: repository,
+		basicPath:  basicPath,
 	}
 }
 
@@ -38,7 +38,7 @@ func (i *Interactor) CreateShortLink(originalURL string) (*string, error) {
 		return nil, fmt.Errorf("provided string is not valid url: %w", err)
 	}
 
-	shortLink, ok := i.links.GetShortLink(originalURL)
+	shortLink, ok := i.repository.GetShortLink(originalURL)
 	if ok {
 		path := fmt.Sprintf("%s/%s", i.basicPath, shortLink)
 		return &path, nil
@@ -61,8 +61,13 @@ func (i *Interactor) generateShortLink(originalURL string) (*string, error) {
 		for i := range path {
 			path[i] = letterRunes[rand.Intn(len(letterRunes))]
 		}
-		if ok := i.links.SetLink(originalURL, string(path)); ok {
+		ok, err := i.repository.SetLink(originalURL, string(path))
+		if err != nil {
+			return nil, fmt.Errorf("can not set link: %w", err)
+		}
+		if ok {
 			shortLink := string(path)
+
 			return &shortLink, nil
 		}
 		retry++
@@ -71,7 +76,7 @@ func (i *Interactor) generateShortLink(originalURL string) (*string, error) {
 }
 
 func (i *Interactor) GetShortLink(shortLink string) (*string, error) {
-	originalURL, ok := i.links.GetOriginalURL(shortLink)
+	originalURL, ok := i.repository.GetOriginalURL(shortLink)
 	if !ok {
 		return nil, errors.New("no url by short link")
 	}

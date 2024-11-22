@@ -8,19 +8,24 @@ import (
 
 	"github.com/RexArseny/url_shortener/internal/app/config"
 	"github.com/RexArseny/url_shortener/internal/app/controllers"
+	"github.com/RexArseny/url_shortener/internal/app/middlewares"
 	"github.com/gin-gonic/gin"
 )
 
-func NewRouter(cfg *config.Config, controller controllers.Controller) (*gin.Engine, error) {
+func NewRouter(
+	cfg *config.Config,
+	controller controllers.Controller,
+	middleware middlewares.Middleware) (*gin.Engine, error) {
 	prefix, err := getURLPrefix(cfg)
 	if err != nil {
 		return nil, err
 	}
 
 	router := gin.New()
-	router.Use(gin.Logger(), gin.Recovery())
+	router.Use(gin.Recovery(), middleware.Logger(), middleware.Compressor())
 
 	router.POST("/", controller.CreateShortLink)
+	router.POST("/api/shorten", controller.CreateShortLinkJSON)
 	router.GET(fmt.Sprintf("%s/:%s", *prefix, controllers.ID), controller.GetShortLink)
 
 	return router, nil

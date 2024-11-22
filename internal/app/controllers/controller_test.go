@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"encoding/json"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -10,10 +11,11 @@ import (
 	"testing"
 
 	"github.com/RexArseny/url_shortener/internal/app/config"
+	"github.com/RexArseny/url_shortener/internal/app/logger"
+	"github.com/RexArseny/url_shortener/internal/app/models"
 	"github.com/RexArseny/url_shortener/internal/app/usecases"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
-	"go.uber.org/zap"
 )
 
 func TestCreateShortLink(t *testing.T) {
@@ -61,9 +63,10 @@ func TestCreateShortLink(t *testing.T) {
 			cfg := config.Config{
 				BasicPath: config.DefaultBasicPath,
 			}
-			logger := zap.Must(zap.NewProduction())
-			interactor := usecases.NewInteractor(cfg.BasicPath)
-			conntroller := NewController(logger.Named("controller"), interactor)
+			testLogger, err := logger.InitLogger()
+			assert.NoError(t, err)
+			interactor := usecases.NewInteractor(cfg.BasicPath, models.NewLinks())
+			conntroller := NewController(testLogger.Named("controller"), interactor)
 
 			w := httptest.NewRecorder()
 			ctx, _ := gin.CreateTestContext(w)
@@ -87,6 +90,92 @@ func TestCreateShortLink(t *testing.T) {
 			}
 
 			assert.NotContains(t, string(resultBody), "http")
+		})
+	}
+}
+
+func TestCreateShortLinkJSON(t *testing.T) {
+	type want struct {
+		stastusCode int
+		contenType  string
+		response    map[string]interface{}
+	}
+	tests := []struct {
+		name    string
+		request string
+		want    want
+	}{
+		{
+			name:    "empty body",
+			request: "",
+			want: want{
+				stastusCode: http.StatusBadRequest,
+				contenType:  "application/json; charset=utf-8",
+				response:    map[string]interface{}{"error": "Bad Request"},
+			},
+		},
+		{
+			name:    "invalid body",
+			request: "abc",
+			want: want{
+				stastusCode: http.StatusBadRequest,
+				contenType:  "application/json; charset=utf-8",
+				response:    map[string]interface{}{"error": "Bad Request"},
+			},
+		},
+		{
+			name:    "invalid url",
+			request: `{"url":"abc"}`,
+			want: want{
+				stastusCode: http.StatusBadRequest,
+				contenType:  "application/json; charset=utf-8",
+				response:    map[string]interface{}{"error": "Bad Request"},
+			},
+		},
+		{
+			name:    "valid url",
+			request: `{"url":"https://ya.ru"}`,
+			want: want{
+				stastusCode: http.StatusCreated,
+				contenType:  "application/json; charset=utf-8",
+				response:    map[string]interface{}{"result": "http"},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := config.Config{
+				BasicPath: config.DefaultBasicPath,
+			}
+			testLogger, err := logger.InitLogger()
+			assert.NoError(t, err)
+			interactor := usecases.NewInteractor(cfg.BasicPath, models.NewLinks())
+			conntroller := NewController(testLogger.Named("controller"), interactor)
+
+			w := httptest.NewRecorder()
+			ctx, _ := gin.CreateTestContext(w)
+			ctx.Request = httptest.NewRequest(http.MethodPost, "/api/shorten", strings.NewReader(tt.request))
+
+			conntroller.CreateShortLinkJSON(ctx)
+
+			result := w.Result()
+
+			assert.Equal(t, tt.want.stastusCode, result.StatusCode)
+			assert.Equal(t, tt.want.contenType, result.Header.Get("Content-Type"))
+
+			resultBody, err := io.ReadAll(result.Body)
+			assert.NoError(t, err)
+			err = result.Body.Close()
+			assert.NoError(t, err)
+
+			var response map[string]interface{}
+			err = json.Unmarshal(resultBody, &response)
+			assert.NoError(t, err)
+
+			for key, val := range tt.want.response {
+				assert.Contains(t, response[key], val)
+			}
 		})
 	}
 }
@@ -145,9 +234,10 @@ func TestGetShortLink(t *testing.T) {
 			cfg := config.Config{
 				BasicPath: config.DefaultBasicPath,
 			}
-			logger := zap.Must(zap.NewProduction())
-			interactor := usecases.NewInteractor(cfg.BasicPath)
-			conntroller := NewController(logger.Named("controller"), interactor)
+			testLogger, err := logger.InitLogger()
+			assert.NoError(t, err)
+			interactor := usecases.NewInteractor(cfg.BasicPath, models.NewLinks())
+			conntroller := NewController(testLogger.Named("controller"), interactor)
 
 			w := httptest.NewRecorder()
 			ctx, _ := gin.CreateTestContext(w)

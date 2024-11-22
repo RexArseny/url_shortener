@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -13,11 +14,13 @@ import (
 
 	"github.com/RexArseny/url_shortener/internal/app/config"
 	"github.com/RexArseny/url_shortener/internal/app/controllers"
+	"github.com/RexArseny/url_shortener/internal/app/logger"
+	"github.com/RexArseny/url_shortener/internal/app/middlewares"
+	"github.com/RexArseny/url_shortener/internal/app/models"
 	"github.com/RexArseny/url_shortener/internal/app/routers"
 	"github.com/RexArseny/url_shortener/internal/app/usecases"
 	"github.com/gojek/heimdall/v7/httpclient"
 	"github.com/stretchr/testify/assert"
-	"go.uber.org/zap"
 )
 
 func TestCreateShortLink(t *testing.T) {
@@ -63,13 +66,25 @@ func TestCreateShortLink(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cfg := config.Config{
-				ServerAddress: config.DefaultServerAddress,
-				BasicPath:     config.DefaultBasicPath,
+				ServerAddress:   config.DefaultServerAddress,
+				BasicPath:       config.DefaultBasicPath,
+				FileStoragePath: config.DefaultFileStoragePath,
 			}
-			logger := zap.Must(zap.NewProduction())
-			interactor := usecases.NewInteractor(cfg.BasicPath)
-			conntroller := controllers.NewController(logger.Named("controller"), interactor)
-			router, err := routers.NewRouter(&cfg, conntroller)
+			testLogger, err := logger.InitLogger()
+			assert.NoError(t, err)
+
+			var repository models.Repository
+			if cfg.FileStoragePath != "" {
+				repository, err = models.NewLinksWithFile(cfg.FileStoragePath)
+				assert.NoError(t, err)
+			} else {
+				repository = models.NewLinks()
+			}
+
+			interactor := usecases.NewInteractor(cfg.BasicPath, repository)
+			conntroller := controllers.NewController(testLogger.Named("controller"), interactor)
+			middleware := middlewares.NewMiddleware(testLogger.Named("middleware"))
+			router, err := routers.NewRouter(&cfg, conntroller, middleware)
 			assert.NoError(t, err)
 
 			server := httptest.NewServer(router)
@@ -94,6 +109,106 @@ func TestCreateShortLink(t *testing.T) {
 			}
 
 			assert.NotContains(t, string(resultBody), "http")
+		})
+	}
+}
+
+func TestCreateShortLinkJSON(t *testing.T) {
+	type want struct {
+		stastusCode int
+		contenType  string
+		response    map[string]interface{}
+	}
+	tests := []struct {
+		name    string
+		request string
+		want    want
+	}{
+		{
+			name:    "empty body",
+			request: "",
+			want: want{
+				stastusCode: http.StatusBadRequest,
+				contenType:  "application/json; charset=utf-8",
+				response:    map[string]interface{}{"error": "Bad Request"},
+			},
+		},
+		{
+			name:    "invalid body",
+			request: "abc",
+			want: want{
+				stastusCode: http.StatusBadRequest,
+				contenType:  "application/json; charset=utf-8",
+				response:    map[string]interface{}{"error": "Bad Request"},
+			},
+		},
+		{
+			name:    "invalid url",
+			request: `{"url":"abc"}`,
+			want: want{
+				stastusCode: http.StatusBadRequest,
+				contenType:  "application/json; charset=utf-8",
+				response:    map[string]interface{}{"error": "Bad Request"},
+			},
+		},
+		{
+			name:    "valid url",
+			request: `{"url":"https://ya.ru"}`,
+			want: want{
+				stastusCode: http.StatusCreated,
+				contenType:  "application/json; charset=utf-8",
+				response:    map[string]interface{}{"result": "http"},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := config.Config{
+				ServerAddress:   config.DefaultServerAddress,
+				BasicPath:       config.DefaultBasicPath,
+				FileStoragePath: config.DefaultFileStoragePath,
+			}
+			testLogger, err := logger.InitLogger()
+			assert.NoError(t, err)
+
+			var repository models.Repository
+			if cfg.FileStoragePath != "" {
+				repository, err = models.NewLinksWithFile(cfg.FileStoragePath)
+				assert.NoError(t, err)
+			} else {
+				repository = models.NewLinks()
+			}
+
+			interactor := usecases.NewInteractor(cfg.BasicPath, repository)
+			conntroller := controllers.NewController(testLogger.Named("controller"), interactor)
+			middleware := middlewares.NewMiddleware(testLogger.Named("middleware"))
+			router, err := routers.NewRouter(&cfg, conntroller, middleware)
+			assert.NoError(t, err)
+
+			server := httptest.NewServer(router)
+			defer server.Close()
+
+			client := httpclient.NewClient(httpclient.WithHTTPTimeout(15 * time.Second))
+
+			result, err := client.Post(server.URL+"/api/shorten", strings.NewReader(tt.request), nil)
+			assert.NoError(t, err)
+
+			assert.Equal(t, tt.want.stastusCode, result.StatusCode)
+			assert.Equal(t, tt.want.contenType, result.Header.Get("Content-Type"))
+
+			resultBody, err := io.ReadAll(result.Body)
+			assert.NoError(t, err)
+			err = result.Body.Close()
+			assert.NoError(t, err)
+
+			var response map[string]interface{}
+			err = json.Unmarshal(resultBody, &response)
+			assert.NoError(t, err)
+
+			for key, val := range tt.want.response {
+				assert.Contains(t, response[key], val)
+			}
 		})
 	}
 }
@@ -150,13 +265,25 @@ func TestGetShortLink(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cfg := config.Config{
-				ServerAddress: config.DefaultServerAddress,
-				BasicPath:     config.DefaultBasicPath,
+				ServerAddress:   config.DefaultServerAddress,
+				BasicPath:       config.DefaultBasicPath,
+				FileStoragePath: config.DefaultFileStoragePath,
 			}
-			logger := zap.Must(zap.NewProduction())
-			interactor := usecases.NewInteractor(cfg.BasicPath)
-			conntroller := controllers.NewController(logger.Named("controller"), interactor)
-			router, err := routers.NewRouter(&cfg, conntroller)
+			testLogger, err := logger.InitLogger()
+			assert.NoError(t, err)
+
+			var repository models.Repository
+			if cfg.FileStoragePath != "" {
+				repository, err = models.NewLinksWithFile(cfg.FileStoragePath)
+				assert.NoError(t, err)
+			} else {
+				repository = models.NewLinks()
+			}
+
+			interactor := usecases.NewInteractor(cfg.BasicPath, repository)
+			conntroller := controllers.NewController(testLogger.Named("controller"), interactor)
+			middleware := middlewares.NewMiddleware(testLogger.Named("middleware"))
+			router, err := routers.NewRouter(&cfg, conntroller, middleware)
 			assert.NoError(t, err)
 
 			server := httptest.NewServer(router)

@@ -30,16 +30,16 @@ func (l *Links) GetOriginalURL(shortLink string) (string, bool) {
 	return originalURL, ok
 }
 
-func (l *Links) SetLink(originalURL string, shortLink string) bool {
+func (l *Links) SetLink(originalURL string, shortLink string) (bool, error) {
 	l.m.Lock()
 	defer l.m.Unlock()
 	if _, ok := l.shortLinks[originalURL]; ok {
-		return false
+		return false, nil
 	}
 	if _, ok := l.originalURLs[shortLink]; ok {
-		return false
+		return false, nil
 	}
 	l.shortLinks[originalURL] = shortLink
 	l.originalURLs[shortLink] = originalURL
-	return true
+	return true, nil
 }
