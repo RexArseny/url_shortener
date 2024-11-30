@@ -18,7 +18,7 @@ const (
 var (
 	letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
 
-	ErrMaxGenerationRetries = errors.New("reached max generation retries")
+	ErrInvalidURL = errors.New("provided string is not valid url")
 )
 
 type Interactor struct {
@@ -36,7 +36,7 @@ func NewInteractor(basicPath string, urlRepository repository.Repository) Intera
 func (i *Interactor) CreateShortLink(ctx context.Context, originalURL string) (*string, error) {
 	_, err := url.ParseRequestURI(originalURL)
 	if err != nil {
-		return nil, fmt.Errorf("provided string is not valid url: %w", err)
+		return nil, fmt.Errorf("%w: %w", ErrInvalidURL, err)
 	}
 
 	shortLink, ok, err := i.urlRepository.GetShortLink(ctx, originalURL)
@@ -76,7 +76,7 @@ func (i *Interactor) generateShortLink(ctx context.Context, originalURL string) 
 		}
 		retry++
 	}
-	return nil, ErrMaxGenerationRetries
+	return nil, errors.New("reached max generation retries")
 }
 
 func (i *Interactor) GetShortLink(ctx context.Context, shortLink string) (*string, error) {

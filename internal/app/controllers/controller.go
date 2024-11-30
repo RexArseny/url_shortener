@@ -35,12 +35,12 @@ func (c *Controller) CreateShortLink(ctx *gin.Context) {
 
 	result, err := c.interactor.CreateShortLink(ctx, string(data))
 	if err != nil {
-		if errors.Is(err, usecases.ErrMaxGenerationRetries) {
-			c.logger.Error("Can not create short link, max short link generation retries reached", zap.Error(err))
-			ctx.String(http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError))
+		if errors.Is(err, usecases.ErrInvalidURL) {
+			ctx.String(http.StatusBadRequest, http.StatusText(http.StatusBadRequest))
 			return
 		}
-		ctx.String(http.StatusBadRequest, http.StatusText(http.StatusBadRequest))
+		c.logger.Error("Can not create short link", zap.Error(err))
+		ctx.String(http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError))
 		return
 	}
 
@@ -70,12 +70,12 @@ func (c *Controller) CreateShortLinkJSON(ctx *gin.Context) {
 
 	result, err := c.interactor.CreateShortLink(ctx, request.URL)
 	if err != nil {
-		if errors.Is(err, usecases.ErrMaxGenerationRetries) {
-			c.logger.Error("Can not create short link", zap.Error(err))
-			ctx.JSON(http.StatusInternalServerError, gin.H{"error": http.StatusText(http.StatusInternalServerError)})
+		if errors.Is(err, usecases.ErrInvalidURL) {
+			ctx.JSON(http.StatusBadRequest, gin.H{"error": http.StatusText(http.StatusBadRequest)})
 			return
 		}
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": http.StatusText(http.StatusBadRequest)})
+		c.logger.Error("Can not create short link", zap.Error(err))
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": http.StatusText(http.StatusInternalServerError)})
 		return
 	}
 
