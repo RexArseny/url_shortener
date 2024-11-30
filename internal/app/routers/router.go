@@ -27,6 +27,7 @@ func NewRouter(
 	router.POST("/", controller.CreateShortLink)
 	router.POST("/api/shorten", controller.CreateShortLinkJSON)
 	router.GET(fmt.Sprintf("%s/:%s", *prefix, controllers.ID), controller.GetShortLink)
+	router.GET("/ping", controller.PingDB)
 
 	return router, nil
 }

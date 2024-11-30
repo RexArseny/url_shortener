@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -16,7 +17,7 @@ import (
 	"github.com/RexArseny/url_shortener/internal/app/controllers"
 	"github.com/RexArseny/url_shortener/internal/app/logger"
 	"github.com/RexArseny/url_shortener/internal/app/middlewares"
-	"github.com/RexArseny/url_shortener/internal/app/models"
+	"github.com/RexArseny/url_shortener/internal/app/repository"
 	"github.com/RexArseny/url_shortener/internal/app/routers"
 	"github.com/RexArseny/url_shortener/internal/app/usecases"
 	"github.com/gojek/heimdall/v7/httpclient"
@@ -65,6 +66,8 @@ func TestCreateShortLink(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			ctx := context.Background()
+
 			cfg := config.Config{
 				ServerAddress:   config.DefaultServerAddress,
 				BasicPath:       config.DefaultBasicPath,
@@ -73,15 +76,26 @@ func TestCreateShortLink(t *testing.T) {
 			testLogger, err := logger.InitLogger()
 			assert.NoError(t, err)
 
-			var repository models.Repository
-			if cfg.FileStoragePath != "" {
-				repository, err = models.NewLinksWithFile(cfg.FileStoragePath)
+			var urlRepository repository.Repository
+			switch {
+			case cfg.DatabaseDSN != "":
+				dbRepository, err := repository.NewDBRepository(ctx, cfg.DatabaseDSN)
 				assert.NoError(t, err)
-			} else {
-				repository = models.NewLinks()
+				defer dbRepository.Close()
+				urlRepository = dbRepository
+			case cfg.FileStoragePath != "":
+				linksWithFile, err := repository.NewLinksWithFile(cfg.FileStoragePath)
+				assert.NoError(t, err)
+				defer func() {
+					err = linksWithFile.Close()
+					assert.NoError(t, err)
+				}()
+				urlRepository = linksWithFile
+			default:
+				urlRepository = repository.NewLinks()
 			}
 
-			interactor := usecases.NewInteractor(cfg.BasicPath, repository)
+			interactor := usecases.NewInteractor(cfg.BasicPath, urlRepository)
 			conntroller := controllers.NewController(testLogger.Named("controller"), interactor)
 			middleware := middlewares.NewMiddleware(testLogger.Named("middleware"))
 			router, err := routers.NewRouter(&cfg, conntroller, middleware)
@@ -164,6 +178,8 @@ func TestCreateShortLinkJSON(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			ctx := context.Background()
+
 			cfg := config.Config{
 				ServerAddress:   config.DefaultServerAddress,
 				BasicPath:       config.DefaultBasicPath,
@@ -172,15 +188,26 @@ func TestCreateShortLinkJSON(t *testing.T) {
 			testLogger, err := logger.InitLogger()
 			assert.NoError(t, err)
 
-			var repository models.Repository
-			if cfg.FileStoragePath != "" {
-				repository, err = models.NewLinksWithFile(cfg.FileStoragePath)
+			var urlRepository repository.Repository
+			switch {
+			case cfg.DatabaseDSN != "":
+				dbRepository, err := repository.NewDBRepository(ctx, cfg.DatabaseDSN)
 				assert.NoError(t, err)
-			} else {
-				repository = models.NewLinks()
+				defer dbRepository.Close()
+				urlRepository = dbRepository
+			case cfg.FileStoragePath != "":
+				linksWithFile, err := repository.NewLinksWithFile(cfg.FileStoragePath)
+				assert.NoError(t, err)
+				defer func() {
+					err = linksWithFile.Close()
+					assert.NoError(t, err)
+				}()
+				urlRepository = linksWithFile
+			default:
+				urlRepository = repository.NewLinks()
 			}
 
-			interactor := usecases.NewInteractor(cfg.BasicPath, repository)
+			interactor := usecases.NewInteractor(cfg.BasicPath, urlRepository)
 			conntroller := controllers.NewController(testLogger.Named("controller"), interactor)
 			middleware := middlewares.NewMiddleware(testLogger.Named("middleware"))
 			router, err := routers.NewRouter(&cfg, conntroller, middleware)
@@ -264,6 +291,8 @@ func TestGetShortLink(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			ctx := context.Background()
+
 			cfg := config.Config{
 				ServerAddress:   config.DefaultServerAddress,
 				BasicPath:       config.DefaultBasicPath,
@@ -272,15 +301,26 @@ func TestGetShortLink(t *testing.T) {
 			testLogger, err := logger.InitLogger()
 			assert.NoError(t, err)
 
-			var repository models.Repository
-			if cfg.FileStoragePath != "" {
-				repository, err = models.NewLinksWithFile(cfg.FileStoragePath)
+			var urlRepository repository.Repository
+			switch {
+			case cfg.DatabaseDSN != "":
+				dbRepository, err := repository.NewDBRepository(ctx, cfg.DatabaseDSN)
 				assert.NoError(t, err)
-			} else {
-				repository = models.NewLinks()
+				defer dbRepository.Close()
+				urlRepository = dbRepository
+			case cfg.FileStoragePath != "":
+				linksWithFile, err := repository.NewLinksWithFile(cfg.FileStoragePath)
+				assert.NoError(t, err)
+				defer func() {
+					err = linksWithFile.Close()
+					assert.NoError(t, err)
+				}()
+				urlRepository = linksWithFile
+			default:
+				urlRepository = repository.NewLinks()
 			}
 
-			interactor := usecases.NewInteractor(cfg.BasicPath, repository)
+			interactor := usecases.NewInteractor(cfg.BasicPath, urlRepository)
 			conntroller := controllers.NewController(testLogger.Named("controller"), interactor)
 			middleware := middlewares.NewMiddleware(testLogger.Named("middleware"))
 			router, err := routers.NewRouter(&cfg, conntroller, middleware)
