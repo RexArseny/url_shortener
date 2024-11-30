@@ -4,16 +4,22 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
+	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"go.uber.org/zap"
 )
 
+var ErrOriginalURLUniqueViolation = errors.New("original url unique violation")
+
 type DBRepository struct {
-	pool *pgxpool.Pool
+	logger *zap.Logger
+	pool   *pgxpool.Pool
 }
 
-func NewDBRepository(ctx context.Context, connString string) (*DBRepository, error) {
+func NewDBRepository(ctx context.Context, logger *zap.Logger, connString string) (*DBRepository, error) {
 	pool, err := pgxpool.New(ctx, connString)
 	if err != nil {
 		return nil, fmt.Errorf("can not create new pool for PostgreSQL server: %w", err)
@@ -26,12 +32,14 @@ func NewDBRepository(ctx context.Context, connString string) (*DBRepository, err
 							(id SERIAL PRIMARY KEY, 
 							short_url text NOT NULL, 
 							original_url text NOT NULL, 
-							UNIQUE(short_url, original_url))`)
+							UNIQUE(short_url), 
+							UNIQUE(original_url))`)
 	if err != nil {
 		return nil, fmt.Errorf("can not create table: %w", err)
 	}
 	return &DBRepository{
-		pool: pool,
+		logger: logger,
+		pool:   pool,
 	}, nil
 }
 
@@ -60,14 +68,41 @@ func (d *DBRepository) GetOriginalURL(ctx context.Context, shortLink string) (st
 }
 
 func (d *DBRepository) SetLink(ctx context.Context, originalURL string, shortLink string) (bool, error) {
-	_, err := d.pool.Exec(ctx, `INSERT INTO urls (short_url, original_url) 
-								VALUES ($1, $2) 
-								ON CONFLICT (short_url, original_url) 
-								DO NOTHING`, shortLink, originalURL)
+	_, err := d.pool.Exec(ctx, "INSERT INTO urls (short_url, original_url) VALUES ($1, $2)", shortLink, originalURL)
 	if err != nil {
 		return false, fmt.Errorf("can not set link: %w", err)
 	}
 	return true, nil
+}
+
+func (d *DBRepository) SetLinks(ctx context.Context, batch []Batch) error {
+	tx, err := d.pool.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("can not start transaction: %w", err)
+	}
+	defer func() {
+		err = tx.Rollback(ctx)
+		if err != nil && !strings.Contains(err.Error(), "tx is closed") {
+			d.logger.Error("Can not rollback transaction", zap.Error(err))
+		}
+	}()
+
+	for i := range batch {
+		_, err = tx.Exec(ctx, "INSERT INTO urls (short_url, original_url) VALUES ($1, $2)", batch[i].ShortURL, batch[i].OriginalURL)
+		if err != nil {
+			if strings.Contains(err.Error(), pgerrcode.UniqueViolation) && strings.Contains(err.Error(), "urls_original_url_key") {
+				return fmt.Errorf("%w: %w", ErrOriginalURLUniqueViolation, err)
+			}
+			return fmt.Errorf("can not set link: %w", err)
+		}
+	}
+
+	err = tx.Commit(ctx)
+	if err != nil {
+		return fmt.Errorf("can not commit transaction: %w", err)
+	}
+
+	return nil
 }
 
 func (d *DBRepository) Ping(ctx context.Context) error {

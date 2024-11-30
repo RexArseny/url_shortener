@@ -79,7 +79,7 @@ func TestCreateShortLink(t *testing.T) {
 			var urlRepository repository.Repository
 			switch {
 			case cfg.DatabaseDSN != "":
-				dbRepository, err := repository.NewDBRepository(ctx, cfg.DatabaseDSN)
+				dbRepository, err := repository.NewDBRepository(ctx, testLogger.Named("repository"), cfg.DatabaseDSN)
 				assert.NoError(t, err)
 				defer dbRepository.Close()
 				urlRepository = dbRepository
@@ -191,7 +191,7 @@ func TestCreateShortLinkJSON(t *testing.T) {
 			var urlRepository repository.Repository
 			switch {
 			case cfg.DatabaseDSN != "":
-				dbRepository, err := repository.NewDBRepository(ctx, cfg.DatabaseDSN)
+				dbRepository, err := repository.NewDBRepository(ctx, testLogger.Named("repository"), cfg.DatabaseDSN)
 				assert.NoError(t, err)
 				defer dbRepository.Close()
 				urlRepository = dbRepository
@@ -304,7 +304,7 @@ func TestGetShortLink(t *testing.T) {
 			var urlRepository repository.Repository
 			switch {
 			case cfg.DatabaseDSN != "":
-				dbRepository, err := repository.NewDBRepository(ctx, cfg.DatabaseDSN)
+				dbRepository, err := repository.NewDBRepository(ctx, testLogger.Named("repository"), cfg.DatabaseDSN)
 				assert.NoError(t, err)
 				defer dbRepository.Close()
 				urlRepository = dbRepository

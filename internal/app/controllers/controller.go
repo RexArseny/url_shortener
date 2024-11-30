@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/RexArseny/url_shortener/internal/app/models"
+	"github.com/RexArseny/url_shortener/internal/app/repository"
 	"github.com/RexArseny/url_shortener/internal/app/usecases"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
@@ -88,6 +89,34 @@ func (c *Controller) CreateShortLinkJSON(ctx *gin.Context) {
 	ctx.JSON(http.StatusCreated, models.ShortenResponse{
 		Result: *result,
 	})
+}
+
+func (c *Controller) CreateShortLinkJSONBatch(ctx *gin.Context) {
+	data, err := io.ReadAll(ctx.Request.Body)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": http.StatusText(http.StatusBadRequest)})
+		return
+	}
+
+	var request []models.ShortenBatchRequest
+	err = json.Unmarshal(data, &request)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": http.StatusText(http.StatusBadRequest)})
+		return
+	}
+
+	result, err := c.interactor.CreateShortLinks(ctx, request)
+	if err != nil {
+		if errors.Is(err, usecases.ErrInvalidURL) || errors.Is(err, repository.ErrOriginalURLUniqueViolation) {
+			ctx.JSON(http.StatusBadRequest, gin.H{"error": http.StatusText(http.StatusBadRequest)})
+			return
+		}
+		c.logger.Error("Can not create short links", zap.Error(err))
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": http.StatusText(http.StatusInternalServerError)})
+		return
+	}
+
+	ctx.JSON(http.StatusCreated, result)
 }
 
 func (c *Controller) GetShortLink(ctx *gin.Context) {

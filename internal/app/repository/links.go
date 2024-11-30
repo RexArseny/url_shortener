@@ -48,6 +48,22 @@ func (l *Links) SetLink(_ context.Context, originalURL string, shortLink string)
 	return true, nil
 }
 
+func (l *Links) SetLinks(ctx context.Context, batch []Batch) error {
+	for i := range batch {
+		l.m.Lock()
+		defer l.m.Unlock()
+		if _, ok := l.shortLinks[batch[i].OriginalURL]; ok {
+			return errors.New("can not set original url")
+		}
+		if _, ok := l.originalURLs[batch[i].ShortURL]; ok {
+			return errors.New("can not set short link")
+		}
+		l.shortLinks[batch[i].OriginalURL] = batch[i].ShortURL
+		l.originalURLs[batch[i].ShortURL] = batch[i].OriginalURL
+	}
+	return nil
+}
+
 func (l *Links) Ping(_ context.Context) error {
 	return errors.New("service in memory storage mode")
 }

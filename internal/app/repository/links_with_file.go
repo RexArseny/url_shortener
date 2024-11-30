@@ -86,6 +86,36 @@ func (l *LinksWithFile) SetLink(_ context.Context, originalURL string, shortLink
 	return true, nil
 }
 
+func (l *LinksWithFile) SetLinks(ctx context.Context, batch []Batch) error {
+	for i := range batch {
+		l.m.Lock()
+		defer l.m.Unlock()
+		if _, ok := l.shortLinks[batch[i].OriginalURL]; ok {
+			return errors.New("can not set original url")
+		}
+		if _, ok := l.originalURLs[batch[i].ShortURL]; ok {
+			return errors.New("can not set short link")
+		}
+		l.shortLinks[batch[i].OriginalURL] = batch[i].ShortURL
+		l.originalURLs[batch[i].ShortURL] = batch[i].OriginalURL
+		l.currentID++
+
+		data, err := json.Marshal(URL{
+			ID:          l.currentID,
+			ShortURL:    batch[i].ShortURL,
+			OriginalURL: batch[i].OriginalURL,
+		})
+		if err != nil {
+			return fmt.Errorf("can not marshal data: %w", err)
+		}
+		_, err = fmt.Fprintf(l.file, "%s\n", data)
+		if err != nil {
+			return fmt.Errorf("can not write data to file: %w", err)
+		}
+	}
+	return nil
+}
+
 func (l *LinksWithFile) Ping(_ context.Context) error {
 	return errors.New("service in file storage mode")
 }

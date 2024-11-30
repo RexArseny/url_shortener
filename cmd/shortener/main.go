@@ -36,7 +36,7 @@ func main() {
 	var urlRepository repository.Repository
 	switch {
 	case cfg.DatabaseDSN != "":
-		dbRepository, err := repository.NewDBRepository(ctx, cfg.DatabaseDSN)
+		dbRepository, err := repository.NewDBRepository(ctx, mainLogger.Named("repository"), cfg.DatabaseDSN)
 		if err != nil {
 			mainLogger.Fatal("Can not init db repository", zap.Error(err))
 		}

@@ -7,6 +7,7 @@ import (
 	"math/rand"
 	"net/url"
 
+	"github.com/RexArseny/url_shortener/internal/app/models"
 	"github.com/RexArseny/url_shortener/internal/app/repository"
 )
 
@@ -58,25 +59,34 @@ func (i *Interactor) CreateShortLink(ctx context.Context, originalURL string) (*
 	return &path, nil
 }
 
-func (i *Interactor) generateShortLink(ctx context.Context, originalURL string) (*string, error) {
-	var retry int
-	for retry < linkGenerationRetries {
-		path := make([]rune, shortLinkPathLength)
-		for i := range path {
-			path[i] = letterRunes[rand.Intn(len(letterRunes))]
-		}
-		ok, err := i.urlRepository.SetLink(ctx, originalURL, string(path))
+func (i *Interactor) CreateShortLinks(ctx context.Context, originalURLs []models.ShortenBatchRequest) ([]models.ShortenBatchResponse, error) {
+	batch := make([]repository.Batch, 0, len(originalURLs))
+	for _, originalURL := range originalURLs {
+		_, err := url.ParseRequestURI(originalURL.OriginalURL)
 		if err != nil {
-			return nil, fmt.Errorf("can not set link: %w", err)
+			return nil, fmt.Errorf("%w: %w", ErrInvalidURL, err)
 		}
-		if ok {
-			shortLink := string(path)
 
-			return &shortLink, nil
-		}
-		retry++
+		batch = append(batch, repository.Batch{
+			OriginalURL: originalURL.OriginalURL,
+			ShortURL:    i.generatePath(),
+		})
 	}
-	return nil, errors.New("reached max generation retries")
+
+	err := i.urlRepository.SetLinks(ctx, batch)
+	if err != nil {
+		return nil, fmt.Errorf("can not create short links: %w", err)
+	}
+
+	response := make([]models.ShortenBatchResponse, 0, len(originalURLs))
+	for j, shortLink := range batch {
+		response = append(response, models.ShortenBatchResponse{
+			CorrelationID: originalURLs[j].CorrelationID,
+			ShortURL:      fmt.Sprintf("%s/%s", i.basicPath, shortLink),
+		})
+	}
+
+	return response, nil
 }
 
 func (i *Interactor) GetShortLink(ctx context.Context, shortLink string) (*string, error) {
@@ -98,4 +108,28 @@ func (i *Interactor) PingDB(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+func (i *Interactor) generateShortLink(ctx context.Context, originalURL string) (*string, error) {
+	var retry int
+	for retry < linkGenerationRetries {
+		path := i.generatePath()
+		ok, err := i.urlRepository.SetLink(ctx, originalURL, path)
+		if err != nil {
+			return nil, fmt.Errorf("can not set link: %w", err)
+		}
+		if ok {
+			return &path, nil
+		}
+		retry++
+	}
+	return nil, errors.New("reached max generation retries")
+}
+
+func (i *Interactor) generatePath() string {
+	path := make([]rune, shortLinkPathLength)
+	for i := range path {
+		path[i] = letterRunes[rand.Intn(len(letterRunes))]
+	}
+	return string(path)
 }
