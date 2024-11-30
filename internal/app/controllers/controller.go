@@ -33,7 +33,7 @@ func (c *Controller) CreateShortLink(ctx *gin.Context) {
 		return
 	}
 
-	result, err := c.interactor.CreateShortLink(string(data))
+	result, err := c.interactor.CreateShortLink(ctx, string(data))
 	if err != nil {
 		if errors.Is(err, usecases.ErrMaxGenerationRetries) {
 			c.logger.Error("Can not create short link, max short link generation retries reached", zap.Error(err))
@@ -68,7 +68,7 @@ func (c *Controller) CreateShortLinkJSON(ctx *gin.Context) {
 		return
 	}
 
-	result, err := c.interactor.CreateShortLink(request.URL)
+	result, err := c.interactor.CreateShortLink(ctx, request.URL)
 	if err != nil {
 		if errors.Is(err, usecases.ErrMaxGenerationRetries) {
 			c.logger.Error("Can not create short link", zap.Error(err))
@@ -93,7 +93,7 @@ func (c *Controller) CreateShortLinkJSON(ctx *gin.Context) {
 func (c *Controller) GetShortLink(ctx *gin.Context) {
 	data := ctx.Param(ID)
 
-	result, err := c.interactor.GetShortLink(data)
+	result, err := c.interactor.GetShortLink(ctx, data)
 	if err != nil {
 		ctx.String(http.StatusBadRequest, http.StatusText(http.StatusBadRequest))
 		return
@@ -106,4 +106,15 @@ func (c *Controller) GetShortLink(ctx *gin.Context) {
 	}
 
 	ctx.Redirect(http.StatusTemporaryRedirect, *result)
+}
+
+func (c *Controller) PingDB(ctx *gin.Context) {
+	err := c.interactor.PingDB(ctx)
+	if err != nil {
+		c.logger.Error("Can not ping db", zap.Error(err))
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": http.StatusText(http.StatusInternalServerError)})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"status": http.StatusText(http.StatusOK)})
 }

@@ -12,7 +12,7 @@ import (
 
 	"github.com/RexArseny/url_shortener/internal/app/config"
 	"github.com/RexArseny/url_shortener/internal/app/logger"
-	"github.com/RexArseny/url_shortener/internal/app/models"
+	"github.com/RexArseny/url_shortener/internal/app/repository"
 	"github.com/RexArseny/url_shortener/internal/app/usecases"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
@@ -65,7 +65,7 @@ func TestCreateShortLink(t *testing.T) {
 			}
 			testLogger, err := logger.InitLogger()
 			assert.NoError(t, err)
-			interactor := usecases.NewInteractor(cfg.BasicPath, models.NewLinks())
+			interactor := usecases.NewInteractor(cfg.BasicPath, repository.NewLinks())
 			conntroller := NewController(testLogger.Named("controller"), interactor)
 
 			w := httptest.NewRecorder()
@@ -150,7 +150,7 @@ func TestCreateShortLinkJSON(t *testing.T) {
 			}
 			testLogger, err := logger.InitLogger()
 			assert.NoError(t, err)
-			interactor := usecases.NewInteractor(cfg.BasicPath, models.NewLinks())
+			interactor := usecases.NewInteractor(cfg.BasicPath, repository.NewLinks())
 			conntroller := NewController(testLogger.Named("controller"), interactor)
 
 			w := httptest.NewRecorder()
@@ -236,7 +236,7 @@ func TestGetShortLink(t *testing.T) {
 			}
 			testLogger, err := logger.InitLogger()
 			assert.NoError(t, err)
-			interactor := usecases.NewInteractor(cfg.BasicPath, models.NewLinks())
+			interactor := usecases.NewInteractor(cfg.BasicPath, repository.NewLinks())
 			conntroller := NewController(testLogger.Named("controller"), interactor)
 
 			w := httptest.NewRecorder()

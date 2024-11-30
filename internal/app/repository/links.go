@@ -1,6 +1,10 @@
-package models
+package repository
 
-import "sync"
+import (
+	"context"
+	"errors"
+	"sync"
+)
 
 type Links struct {
 	m            *sync.Mutex
@@ -16,21 +20,21 @@ func NewLinks() *Links {
 	}
 }
 
-func (l *Links) GetShortLink(originalURL string) (string, bool) {
+func (l *Links) GetShortLink(_ context.Context, originalURL string) (string, bool, error) {
 	l.m.Lock()
 	defer l.m.Unlock()
 	shortLink, ok := l.shortLinks[originalURL]
-	return shortLink, ok
+	return shortLink, ok, nil
 }
 
-func (l *Links) GetOriginalURL(shortLink string) (string, bool) {
+func (l *Links) GetOriginalURL(_ context.Context, shortLink string) (string, bool, error) {
 	l.m.Lock()
 	defer l.m.Unlock()
 	originalURL, ok := l.originalURLs[shortLink]
-	return originalURL, ok
+	return originalURL, ok, nil
 }
 
-func (l *Links) SetLink(originalURL string, shortLink string) (bool, error) {
+func (l *Links) SetLink(_ context.Context, originalURL string, shortLink string) (bool, error) {
 	l.m.Lock()
 	defer l.m.Unlock()
 	if _, ok := l.shortLinks[originalURL]; ok {
@@ -42,4 +46,8 @@ func (l *Links) SetLink(originalURL string, shortLink string) (bool, error) {
 	l.shortLinks[originalURL] = shortLink
 	l.originalURLs[shortLink] = originalURL
 	return true, nil
+}
+
+func (l *Links) Ping(_ context.Context) error {
+	return errors.New("service in memory storage mode")
 }

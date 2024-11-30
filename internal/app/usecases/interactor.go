@@ -1,12 +1,13 @@
 package usecases
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"math/rand"
 	"net/url"
 
-	"github.com/RexArseny/url_shortener/internal/app/models"
+	"github.com/RexArseny/url_shortener/internal/app/repository"
 )
 
 const (
@@ -21,30 +22,33 @@ var (
 )
 
 type Interactor struct {
-	repository models.Repository
-	basicPath  string
+	urlRepository repository.Repository
+	basicPath     string
 }
 
-func NewInteractor(basicPath string, repository models.Repository) Interactor {
+func NewInteractor(basicPath string, urlRepository repository.Repository) Interactor {
 	return Interactor{
-		repository: repository,
-		basicPath:  basicPath,
+		urlRepository: urlRepository,
+		basicPath:     basicPath,
 	}
 }
 
-func (i *Interactor) CreateShortLink(originalURL string) (*string, error) {
+func (i *Interactor) CreateShortLink(ctx context.Context, originalURL string) (*string, error) {
 	_, err := url.ParseRequestURI(originalURL)
 	if err != nil {
 		return nil, fmt.Errorf("provided string is not valid url: %w", err)
 	}
 
-	shortLink, ok := i.repository.GetShortLink(originalURL)
+	shortLink, ok, err := i.urlRepository.GetShortLink(ctx, originalURL)
+	if err != nil {
+		return nil, fmt.Errorf("can not get short link: %w", err)
+	}
 	if ok {
 		path := fmt.Sprintf("%s/%s", i.basicPath, shortLink)
 		return &path, nil
 	}
 
-	link, err := i.generateShortLink(originalURL)
+	link, err := i.generateShortLink(ctx, originalURL)
 	if err != nil {
 		return nil, fmt.Errorf("can not generate short link: %w", err)
 	}
@@ -54,14 +58,14 @@ func (i *Interactor) CreateShortLink(originalURL string) (*string, error) {
 	return &path, nil
 }
 
-func (i *Interactor) generateShortLink(originalURL string) (*string, error) {
+func (i *Interactor) generateShortLink(ctx context.Context, originalURL string) (*string, error) {
 	var retry int
 	for retry < linkGenerationRetries {
 		path := make([]rune, shortLinkPathLength)
 		for i := range path {
 			path[i] = letterRunes[rand.Intn(len(letterRunes))]
 		}
-		ok, err := i.repository.SetLink(originalURL, string(path))
+		ok, err := i.urlRepository.SetLink(ctx, originalURL, string(path))
 		if err != nil {
 			return nil, fmt.Errorf("can not set link: %w", err)
 		}
@@ -75,11 +79,23 @@ func (i *Interactor) generateShortLink(originalURL string) (*string, error) {
 	return nil, ErrMaxGenerationRetries
 }
 
-func (i *Interactor) GetShortLink(shortLink string) (*string, error) {
-	originalURL, ok := i.repository.GetOriginalURL(shortLink)
+func (i *Interactor) GetShortLink(ctx context.Context, shortLink string) (*string, error) {
+	originalURL, ok, err := i.urlRepository.GetOriginalURL(ctx, shortLink)
+	if err != nil {
+		return nil, fmt.Errorf("can not get original url: %w", err)
+	}
 	if !ok {
 		return nil, errors.New("no url by short link")
 	}
 
 	return &originalURL, nil
+}
+
+func (i *Interactor) PingDB(ctx context.Context) error {
+	err := i.urlRepository.Ping(ctx)
+	if err != nil {
+		return fmt.Errorf("can not ping db: %w", err)
+	}
+
+	return nil
 }
