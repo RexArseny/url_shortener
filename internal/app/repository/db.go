@@ -22,7 +22,11 @@ func NewDBRepository(ctx context.Context, connString string) (*DBRepository, err
 	if err != nil {
 		return nil, fmt.Errorf("can not ping PostgreSQL server: %w", err)
 	}
-	_, err = pool.Exec(ctx, "CREATE TABLE IF NOT EXISTS urls (id SERIAL PRIMARY KEY, short_url text NOT NULL, original_url text NOT NULL, UNIQUE(short_url, original_url))")
+	_, err = pool.Exec(ctx, `CREATE TABLE IF NOT EXISTS urls 
+							(id SERIAL PRIMARY KEY, 
+							short_url text NOT NULL, 
+							original_url text NOT NULL, 
+							UNIQUE(short_url, original_url))`)
 	if err != nil {
 		return nil, fmt.Errorf("can not create table: %w", err)
 	}
@@ -56,7 +60,10 @@ func (d *DBRepository) GetOriginalURL(ctx context.Context, shortLink string) (st
 }
 
 func (d *DBRepository) SetLink(ctx context.Context, originalURL string, shortLink string) (bool, error) {
-	_, err := d.pool.Exec(ctx, "INSERT INTO urls (short_url, original_url) VALUES ($1, $2) ON CONFLICT (short_url, original_url) DO NOTHING", shortLink, originalURL)
+	_, err := d.pool.Exec(ctx, `INSERT INTO urls (short_url, original_url) 
+								VALUES ($1, $2) 
+								ON CONFLICT (short_url, original_url) 
+								DO NOTHING`, shortLink, originalURL)
 	if err != nil {
 		return false, fmt.Errorf("can not set link: %w", err)
 	}
