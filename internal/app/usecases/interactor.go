@@ -82,7 +82,7 @@ func (i *Interactor) CreateShortLinks(ctx context.Context, originalURLs []models
 	for j, shortLink := range batch {
 		response = append(response, models.ShortenBatchResponse{
 			CorrelationID: originalURLs[j].CorrelationID,
-			ShortURL:      fmt.Sprintf("%s/%s", i.basicPath, shortLink),
+			ShortURL:      fmt.Sprintf("%s/%s", i.basicPath, shortLink.ShortURL),
 		})
 	}
 
