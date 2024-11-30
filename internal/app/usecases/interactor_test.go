@@ -38,7 +38,7 @@ func TestCreateShortLink(t *testing.T) {
 func TestGetShortLink(t *testing.T) {
 	interactor := NewInteractor(config.DefaultBasicPath, repository.NewLinks())
 
-	link, err := interactor.CreateShortLink(context.Background(), "context.Background(),https://ya.ru")
+	link, err := interactor.CreateShortLink(context.Background(), "https://ya.ru")
 	assert.NoError(t, err)
 	assert.NotEmpty(t, link)
 
