@@ -3,7 +3,6 @@ package repository
 import (
 	"context"
 	"errors"
-	"fmt"
 	"net/url"
 	"sync"
 
@@ -54,7 +53,7 @@ func (l *Links) SetLink(_ context.Context, originalURL string) (*string, error) 
 
 		return &shortLink, nil
 	}
-	return nil, errors.New("reached max generation retries")
+	return nil, models.ErrReachedMaxGenerationRetries
 }
 
 func (l *Links) SetLinks(_ context.Context, batch []models.ShortenBatchRequest) ([]string, error) {
@@ -66,7 +65,7 @@ func (l *Links) SetLinks(_ context.Context, batch []models.ShortenBatchRequest) 
 	for i := range batch {
 		_, err := url.ParseRequestURI(batch[i].OriginalURL)
 		if err != nil {
-			return nil, fmt.Errorf("%w: %w", models.ErrInvalidURL, err)
+			return nil, models.ErrInvalidURL
 		}
 
 		if shortLink, ok := l.shortLinks[batch[i].OriginalURL]; ok {
@@ -93,7 +92,7 @@ func (l *Links) SetLinks(_ context.Context, batch []models.ShortenBatchRequest) 
 		}
 
 		if !generated {
-			return nil, errors.New("reached max generation retries")
+			return nil, models.ErrReachedMaxGenerationRetries
 		}
 		result = append(result, shortLink)
 	}

@@ -25,7 +25,7 @@ func NewInteractor(basicPath string, urlRepository repository.Repository) Intera
 func (i *Interactor) CreateShortLink(ctx context.Context, originalURL string) (*string, error) {
 	_, err := url.ParseRequestURI(originalURL)
 	if err != nil {
-		return nil, fmt.Errorf("%w: %w", models.ErrInvalidURL, err)
+		return nil, models.ErrInvalidURL
 	}
 
 	shortLink, err := i.urlRepository.SetLink(ctx, originalURL)
@@ -33,7 +33,7 @@ func (i *Interactor) CreateShortLink(ctx context.Context, originalURL string) (*
 		if errors.Is(err, models.ErrOriginalURLUniqueViolation) && shortLink != nil {
 			path := fmt.Sprintf("%s/%s", i.basicPath, *shortLink)
 
-			return &path, err
+			return &path, models.ErrOriginalURLUniqueViolation
 		}
 		return nil, fmt.Errorf("can not set short link: %w", err)
 	}
@@ -58,7 +58,7 @@ func (i *Interactor) CreateShortLinks(
 				})
 			}
 
-			return response, err
+			return response, models.ErrOriginalURLUniqueViolation
 		}
 		return nil, fmt.Errorf("can not create short links: %w", err)
 	}

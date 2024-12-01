@@ -93,7 +93,7 @@ func (l *LinksWithFile) SetLink(_ context.Context, originalURL string) (*string,
 
 		return &shortLink, nil
 	}
-	return nil, errors.New("reached max generation retries")
+	return nil, models.ErrReachedMaxGenerationRetries
 }
 
 func (l *LinksWithFile) SetLinks(_ context.Context, batch []models.ShortenBatchRequest) ([]string, error) {
@@ -105,7 +105,7 @@ func (l *LinksWithFile) SetLinks(_ context.Context, batch []models.ShortenBatchR
 	for i := range batch {
 		_, err := url.ParseRequestURI(batch[i].OriginalURL)
 		if err != nil {
-			return nil, fmt.Errorf("%w: %w", models.ErrInvalidURL, err)
+			return nil, models.ErrInvalidURL
 		}
 
 		if shortLink, ok := l.shortLinks[batch[i].OriginalURL]; ok {
@@ -146,7 +146,7 @@ func (l *LinksWithFile) SetLinks(_ context.Context, batch []models.ShortenBatchR
 		}
 
 		if !generated {
-			return nil, errors.New("reached max generation retries")
+			return nil, models.ErrReachedMaxGenerationRetries
 		}
 		result = append(result, shortLink)
 	}

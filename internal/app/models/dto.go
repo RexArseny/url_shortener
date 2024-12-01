@@ -3,8 +3,9 @@ package models
 import "errors"
 
 var (
-	ErrInvalidURL                 = errors.New("provided string is not valid url")
-	ErrOriginalURLUniqueViolation = errors.New("original url unique violation")
+	ErrInvalidURL                  = errors.New("provided string is not valid url")
+	ErrOriginalURLUniqueViolation  = errors.New("original url unique violation")
+	ErrReachedMaxGenerationRetries = errors.New("reached max generation retries")
 )
 
 type ShortenRequest struct {

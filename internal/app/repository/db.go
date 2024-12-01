@@ -74,12 +74,12 @@ func (d *DBRepository) SetLink(ctx context.Context, originalURL string) (*string
 			return nil, fmt.Errorf("can not set link: %w", err)
 		}
 		if link != shortLink {
-			return &link, fmt.Errorf("%w: %w", models.ErrOriginalURLUniqueViolation, err)
+			return &link, models.ErrOriginalURLUniqueViolation
 		}
 
 		return &shortLink, nil
 	}
-	return nil, errors.New("reached max generation retries")
+	return nil, models.ErrReachedMaxGenerationRetries
 }
 
 func (d *DBRepository) SetLinks(ctx context.Context, batch []models.ShortenBatchRequest) ([]string, error) {
@@ -135,7 +135,7 @@ func (d *DBRepository) SetLinks(ctx context.Context, batch []models.ShortenBatch
 	for i := range originalURLs {
 		_, err := url.ParseRequestURI(originalURLs[i])
 		if err != nil {
-			return nil, fmt.Errorf("%w: %w", models.ErrInvalidURL, err)
+			return nil, models.ErrInvalidURL
 		}
 
 		var retry int
@@ -161,7 +161,7 @@ func (d *DBRepository) SetLinks(ctx context.Context, batch []models.ShortenBatch
 		}
 
 		if !generated {
-			return nil, errors.New("reached max generation retries")
+			return nil, models.ErrReachedMaxGenerationRetries
 		}
 		shortURLs[originalURLs[i]] = shortLink
 	}
