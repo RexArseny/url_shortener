@@ -69,9 +69,8 @@ func TestCreateShortLink(t *testing.T) {
 			ctx := context.Background()
 
 			cfg := config.Config{
-				ServerAddress:   config.DefaultServerAddress,
-				BasicPath:       config.DefaultBasicPath,
-				FileStoragePath: config.DefaultFileStoragePath,
+				ServerAddress: config.DefaultServerAddress,
+				BasicPath:     config.DefaultBasicPath,
 			}
 			testLogger, err := logger.InitLogger()
 			assert.NoError(t, err)
@@ -181,9 +180,8 @@ func TestCreateShortLinkJSON(t *testing.T) {
 			ctx := context.Background()
 
 			cfg := config.Config{
-				ServerAddress:   config.DefaultServerAddress,
-				BasicPath:       config.DefaultBasicPath,
-				FileStoragePath: config.DefaultFileStoragePath,
+				ServerAddress: config.DefaultServerAddress,
+				BasicPath:     config.DefaultBasicPath,
 			}
 			testLogger, err := logger.InitLogger()
 			assert.NoError(t, err)
@@ -294,9 +292,8 @@ func TestGetShortLink(t *testing.T) {
 			ctx := context.Background()
 
 			cfg := config.Config{
-				ServerAddress:   config.DefaultServerAddress,
-				BasicPath:       config.DefaultBasicPath,
-				FileStoragePath: config.DefaultFileStoragePath,
+				ServerAddress: config.DefaultServerAddress,
+				BasicPath:     config.DefaultBasicPath,
 			}
 			testLogger, err := logger.InitLogger()
 			assert.NoError(t, err)

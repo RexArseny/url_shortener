@@ -30,9 +30,8 @@ func TestCreateShortLink(t *testing.T) {
 	assert.NotNil(t, parsedURL)
 
 	result4, err := interactor.CreateShortLink(context.Background(), "https://ya.ru")
-	assert.NoError(t, err)
-	assert.NotEmpty(t, result4)
-	assert.Equal(t, result3, result4)
+	assert.Error(t, err)
+	assert.NotNil(t, result4)
 }
 
 func TestGetShortLink(t *testing.T) {

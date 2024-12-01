@@ -4,15 +4,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/url"
 	"strings"
 
+	"github.com/RexArseny/url_shortener/internal/app/models"
 	"github.com/jackc/pgerrcode"
-	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.uber.org/zap"
 )
-
-var ErrOriginalURLUniqueViolation = errors.New("original url unique violation")
 
 type DBRepository struct {
 	logger *zap.Logger
@@ -43,42 +43,55 @@ func NewDBRepository(ctx context.Context, logger *zap.Logger, connString string)
 	}, nil
 }
 
-func (d *DBRepository) GetShortLink(ctx context.Context, originalURL string) (string, bool, error) {
-	var shortLink string
-	err := d.pool.QueryRow(ctx, "SELECT short_url FROM urls WHERE original_url=$1", originalURL).Scan(&shortLink)
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return "", false, nil
-		}
-		return "", false, fmt.Errorf("can not get short link: %w", err)
-	}
-	return shortLink, true, nil
-}
-
-func (d *DBRepository) GetOriginalURL(ctx context.Context, shortLink string) (string, bool, error) {
+func (d *DBRepository) GetOriginalURL(ctx context.Context, shortLink string) (*string, error) {
 	var originalURL string
 	err := d.pool.QueryRow(ctx, "SELECT original_url FROM urls WHERE short_url=$1", shortLink).Scan(&originalURL)
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return "", false, nil
+		return nil, fmt.Errorf("can not get original url: %w", err)
+	}
+	return &originalURL, nil
+}
+
+func (d *DBRepository) SetLink(ctx context.Context, originalURL string) (*string, error) {
+	var retry int
+	for retry < linkGenerationRetries {
+		shortLink := generatePath()
+
+		var link string
+		err := d.pool.QueryRow(ctx, `INSERT INTO urls (short_url, original_url) 
+									VALUES ($1, $2) 
+									ON CONFLICT (original_url) 
+									DO UPDATE SET original_url=EXCLUDED.original_url 
+									RETURNING short_url`, shortLink, originalURL).Scan(&link)
+		if err != nil {
+			var pgErr *pgconn.PgError
+			if errors.As(err, &pgErr) &&
+				pgErr.Code == pgerrcode.UniqueViolation &&
+				pgErr.ConstraintName == "urls_short_url_key" {
+				retry++
+				continue
+			}
+			return nil, fmt.Errorf("can not set link: %w", err)
 		}
-		return "", false, fmt.Errorf("can not get original url: %w", err)
+		if link != shortLink {
+			return &link, fmt.Errorf("%w: %w", models.ErrOriginalURLUniqueViolation, err)
+		}
+
+		return &shortLink, nil
 	}
-	return originalURL, true, nil
+	return nil, errors.New("reached max generation retries")
 }
 
-func (d *DBRepository) SetLink(ctx context.Context, originalURL string, shortLink string) (bool, error) {
-	_, err := d.pool.Exec(ctx, "INSERT INTO urls (short_url, original_url) VALUES ($1, $2)", shortLink, originalURL)
-	if err != nil {
-		return false, fmt.Errorf("can not set link: %w", err)
+func (d *DBRepository) SetLinks(ctx context.Context, batch []models.ShortenBatchRequest) ([]string, error) {
+	shortURLs := make(map[string]string)
+	originalURLs := make([]string, 0, len(batch))
+	for _, originalURL := range batch {
+		originalURLs = append(originalURLs, originalURL.OriginalURL)
 	}
-	return true, nil
-}
 
-func (d *DBRepository) SetLinks(ctx context.Context, batch []Batch) error {
 	tx, err := d.pool.Begin(ctx)
 	if err != nil {
-		return fmt.Errorf("can not start transaction: %w", err)
+		return nil, fmt.Errorf("can not start transaction: %w", err)
 	}
 	defer func() {
 		err = tx.Rollback(ctx)
@@ -87,24 +100,87 @@ func (d *DBRepository) SetLinks(ctx context.Context, batch []Batch) error {
 		}
 	}()
 
-	for i := range batch {
-		_, err = tx.Exec(ctx, `INSERT INTO urls (short_url, original_url) 
-								VALUES ($1, $2)`, batch[i].ShortURL, batch[i].OriginalURL)
+	var originalURLUniqueViolation bool
+	rows, err := tx.Query(ctx, "SELECT short_url, original_url FROM urls WHERE original_url = ANY ($1)", originalURLs)
+	if err != nil {
+		return nil, fmt.Errorf("can not get original urls: %w", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		originalURLUniqueViolation = true
+
+		var shortURL string
+		var originalURL string
+		err = rows.Scan(
+			&shortURL,
+			&originalURL,
+		)
 		if err != nil {
-			if strings.Contains(err.Error(), pgerrcode.UniqueViolation) &&
-				strings.Contains(err.Error(), "urls_original_url_key") {
-				return fmt.Errorf("%w: %w", ErrOriginalURLUniqueViolation, err)
-			}
-			return fmt.Errorf("can not set link: %w", err)
+			return nil, fmt.Errorf("can not read row: %w", err)
 		}
+
+		shortURLs[originalURL] = shortURL
+	}
+	if rows.Err() != nil {
+		return nil, fmt.Errorf("can not read rows: %w", err)
+	}
+
+	for i := len(originalURLs) - 1; i >= 0; i-- {
+		if _, ok := shortURLs[originalURLs[i]]; ok {
+			originalURLs = append(originalURLs[:i], originalURLs[i+1:]...)
+		}
+	}
+
+	for i := range originalURLs {
+		_, err := url.ParseRequestURI(originalURLs[i])
+		if err != nil {
+			return nil, fmt.Errorf("%w: %w", models.ErrInvalidURL, err)
+		}
+
+		var retry int
+		var generated bool
+		var shortLink string
+		for retry < linkGenerationRetries {
+			shortLink = generatePath()
+
+			commandTag, err := tx.Exec(ctx, `INSERT INTO urls (short_url, original_url) 
+											VALUES ($1, $2) 
+											ON CONFLICT (short_url) 
+											DO NOTHING`, shortLink, originalURLs[i])
+			if err != nil {
+				return nil, fmt.Errorf("can not set link: %w", err)
+			}
+			if commandTag.RowsAffected() == 0 {
+				retry++
+				continue
+			}
+
+			generated = true
+			break
+		}
+
+		if !generated {
+			return nil, errors.New("reached max generation retries")
+		}
+		shortURLs[originalURLs[i]] = shortLink
 	}
 
 	err = tx.Commit(ctx)
 	if err != nil {
-		return fmt.Errorf("can not commit transaction: %w", err)
+		return nil, fmt.Errorf("can not commit transaction: %w", err)
 	}
 
-	return nil
+	result := make([]string, 0, len(batch))
+	for i := range batch {
+		result = append(result, shortURLs[batch[i].OriginalURL])
+	}
+
+	if originalURLUniqueViolation {
+		return result, models.ErrOriginalURLUniqueViolation
+	}
+
+	return result, nil
 }
 
 func (d *DBRepository) Ping(ctx context.Context) error {

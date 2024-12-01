@@ -7,7 +7,6 @@ import (
 	"net/http"
 
 	"github.com/RexArseny/url_shortener/internal/app/models"
-	"github.com/RexArseny/url_shortener/internal/app/repository"
 	"github.com/RexArseny/url_shortener/internal/app/usecases"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
@@ -36,7 +35,12 @@ func (c *Controller) CreateShortLink(ctx *gin.Context) {
 
 	result, err := c.interactor.CreateShortLink(ctx, string(data))
 	if err != nil {
-		if errors.Is(err, usecases.ErrInvalidURL) {
+		if errors.Is(err, models.ErrOriginalURLUniqueViolation) && result != nil {
+			ctx.Writer.Header().Set("Content-Type", "text/plain")
+			ctx.String(http.StatusConflict, *result)
+			return
+		}
+		if errors.Is(err, models.ErrInvalidURL) {
 			ctx.String(http.StatusBadRequest, http.StatusText(http.StatusBadRequest))
 			return
 		}
@@ -71,7 +75,13 @@ func (c *Controller) CreateShortLinkJSON(ctx *gin.Context) {
 
 	result, err := c.interactor.CreateShortLink(ctx, request.URL)
 	if err != nil {
-		if errors.Is(err, usecases.ErrInvalidURL) {
+		if errors.Is(err, models.ErrOriginalURLUniqueViolation) && result != nil {
+			ctx.JSON(http.StatusConflict, models.ShortenResponse{
+				Result: *result,
+			})
+			return
+		}
+		if errors.Is(err, models.ErrInvalidURL) {
 			ctx.JSON(http.StatusBadRequest, gin.H{"error": http.StatusText(http.StatusBadRequest)})
 			return
 		}
@@ -107,7 +117,11 @@ func (c *Controller) CreateShortLinkJSONBatch(ctx *gin.Context) {
 
 	result, err := c.interactor.CreateShortLinks(ctx, request)
 	if err != nil {
-		if errors.Is(err, usecases.ErrInvalidURL) || errors.Is(err, repository.ErrOriginalURLUniqueViolation) {
+		if errors.Is(err, models.ErrOriginalURLUniqueViolation) && result != nil {
+			ctx.JSON(http.StatusConflict, result)
+			return
+		}
+		if errors.Is(err, models.ErrInvalidURL) {
 			ctx.JSON(http.StatusBadRequest, gin.H{"error": http.StatusText(http.StatusBadRequest)})
 			return
 		}

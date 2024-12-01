@@ -6,7 +6,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/url"
 	"os"
+
+	"github.com/RexArseny/url_shortener/internal/app/models"
 )
 
 const fileMode = 0o600
@@ -57,63 +60,102 @@ func NewLinksWithFile(fileStoragePath string) (*LinksWithFile, error) {
 	return linksWithFile, nil
 }
 
-func (l *LinksWithFile) SetLink(_ context.Context, originalURL string, shortLink string) (bool, error) {
+func (l *LinksWithFile) SetLink(_ context.Context, originalURL string) (*string, error) {
 	l.m.Lock()
 	defer l.m.Unlock()
-	if _, ok := l.shortLinks[originalURL]; ok {
-		return false, nil
-	}
-	if _, ok := l.originalURLs[shortLink]; ok {
-		return false, nil
-	}
-	l.shortLinks[originalURL] = shortLink
-	l.originalURLs[shortLink] = originalURL
-	l.currentID++
-
-	data, err := json.Marshal(URL{
-		ID:          l.currentID,
-		ShortURL:    shortLink,
-		OriginalURL: originalURL,
-	})
-	if err != nil {
-		return false, fmt.Errorf("can not marshal data: %w", err)
-	}
-	_, err = fmt.Fprintf(l.file, "%s\n", data)
-	if err != nil {
-		return false, fmt.Errorf("can not write data to file: %w", err)
+	if shortLink, ok := l.shortLinks[originalURL]; ok {
+		return &shortLink, models.ErrOriginalURLUniqueViolation
 	}
 
-	return true, nil
-}
+	var retry int
+	for retry < linkGenerationRetries {
+		shortLink := generatePath()
 
-func (l *LinksWithFile) SetLinks(ctx context.Context, batch []Batch) error {
-	l.m.Lock()
-	defer l.m.Unlock()
-	for i := range batch {
-		if _, ok := l.shortLinks[batch[i].OriginalURL]; ok {
-			return errors.New("can not set original url")
+		if _, ok := l.originalURLs[shortLink]; ok {
+			retry++
+			continue
 		}
-		if _, ok := l.originalURLs[batch[i].ShortURL]; ok {
-			return errors.New("can not set short link")
-		}
-		l.shortLinks[batch[i].OriginalURL] = batch[i].ShortURL
-		l.originalURLs[batch[i].ShortURL] = batch[i].OriginalURL
-		l.currentID++
+		l.shortLinks[originalURL] = shortLink
+		l.originalURLs[shortLink] = originalURL
 
 		data, err := json.Marshal(URL{
 			ID:          l.currentID,
-			ShortURL:    batch[i].ShortURL,
-			OriginalURL: batch[i].OriginalURL,
+			ShortURL:    shortLink,
+			OriginalURL: originalURL,
 		})
 		if err != nil {
-			return fmt.Errorf("can not marshal data: %w", err)
+			return nil, fmt.Errorf("can not marshal data: %w", err)
 		}
 		_, err = fmt.Fprintf(l.file, "%s\n", data)
 		if err != nil {
-			return fmt.Errorf("can not write data to file: %w", err)
+			return nil, fmt.Errorf("can not write data to file: %w", err)
 		}
+
+		return &shortLink, nil
 	}
-	return nil
+	return nil, errors.New("reached max generation retries")
+}
+
+func (l *LinksWithFile) SetLinks(_ context.Context, batch []models.ShortenBatchRequest) ([]string, error) {
+	result := make([]string, 0, len(batch))
+	l.m.Lock()
+	defer l.m.Unlock()
+
+	var originalURLUniqueViolation bool
+	for i := range batch {
+		_, err := url.ParseRequestURI(batch[i].OriginalURL)
+		if err != nil {
+			return nil, fmt.Errorf("%w: %w", models.ErrInvalidURL, err)
+		}
+
+		if shortLink, ok := l.shortLinks[batch[i].OriginalURL]; ok {
+			originalURLUniqueViolation = true
+			result = append(result, shortLink)
+			continue
+		}
+
+		var retry int
+		var generated bool
+		var shortLink string
+		for retry < linkGenerationRetries {
+			shortLink = generatePath()
+
+			if _, ok := l.originalURLs[shortLink]; ok {
+				retry++
+				continue
+			}
+			l.shortLinks[batch[i].OriginalURL] = shortLink
+			l.originalURLs[shortLink] = batch[i].OriginalURL
+			l.currentID++
+
+			data, err := json.Marshal(URL{
+				ID:          l.currentID,
+				ShortURL:    shortLink,
+				OriginalURL: batch[i].OriginalURL,
+			})
+			if err != nil {
+				return nil, fmt.Errorf("can not marshal data: %w", err)
+			}
+			_, err = fmt.Fprintf(l.file, "%s\n", data)
+			if err != nil {
+				return nil, fmt.Errorf("can not write data to file: %w", err)
+			}
+
+			generated = true
+			break
+		}
+
+		if !generated {
+			return nil, errors.New("reached max generation retries")
+		}
+		result = append(result, shortLink)
+	}
+
+	if originalURLUniqueViolation {
+		return result, models.ErrOriginalURLUniqueViolation
+	}
+
+	return result, nil
 }
 
 func (l *LinksWithFile) Ping(_ context.Context) error {
