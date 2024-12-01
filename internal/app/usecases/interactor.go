@@ -31,14 +31,14 @@ func (i *Interactor) CreateShortLink(ctx context.Context, originalURL string) (*
 	shortLink, err := i.urlRepository.SetLink(ctx, originalURL)
 	if err != nil {
 		if errors.Is(err, models.ErrOriginalURLUniqueViolation) && shortLink != nil {
-			path := fmt.Sprintf("%s/%s", i.basicPath, *shortLink)
+			path := i.formatURL(*shortLink)
 
 			return &path, models.ErrOriginalURLUniqueViolation
 		}
 		return nil, fmt.Errorf("can not set short link: %w", err)
 	}
 
-	path := fmt.Sprintf("%s/%s", i.basicPath, *shortLink)
+	path := i.formatURL(*shortLink)
 
 	return &path, nil
 }
@@ -54,7 +54,7 @@ func (i *Interactor) CreateShortLinks(
 			for j := range result {
 				response = append(response, models.ShortenBatchResponse{
 					CorrelationID: batch[j].CorrelationID,
-					ShortURL:      fmt.Sprintf("%s/%s", i.basicPath, result[j]),
+					ShortURL:      i.formatURL(result[j]),
 				})
 			}
 
@@ -70,7 +70,7 @@ func (i *Interactor) CreateShortLinks(
 	for j := range result {
 		response = append(response, models.ShortenBatchResponse{
 			CorrelationID: batch[j].CorrelationID,
-			ShortURL:      fmt.Sprintf("%s/%s", i.basicPath, result[j]),
+			ShortURL:      i.formatURL(result[j]),
 		})
 	}
 
@@ -93,4 +93,8 @@ func (i *Interactor) PingDB(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+func (i *Interactor) formatURL(shortURL string) string {
+	return fmt.Sprintf("%s/%s", i.basicPath, shortURL)
 }
