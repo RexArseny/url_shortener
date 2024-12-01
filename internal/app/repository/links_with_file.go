@@ -87,9 +87,9 @@ func (l *LinksWithFile) SetLink(_ context.Context, originalURL string, shortLink
 }
 
 func (l *LinksWithFile) SetLinks(ctx context.Context, batch []Batch) error {
+	l.m.Lock()
+	defer l.m.Unlock()
 	for i := range batch {
-		l.m.Lock()
-		defer l.m.Unlock()
 		if _, ok := l.shortLinks[batch[i].OriginalURL]; ok {
 			return errors.New("can not set original url")
 		}

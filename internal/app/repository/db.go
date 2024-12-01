@@ -88,9 +88,11 @@ func (d *DBRepository) SetLinks(ctx context.Context, batch []Batch) error {
 	}()
 
 	for i := range batch {
-		_, err = tx.Exec(ctx, "INSERT INTO urls (short_url, original_url) VALUES ($1, $2)", batch[i].ShortURL, batch[i].OriginalURL)
+		_, err = tx.Exec(ctx, `INSERT INTO urls (short_url, original_url) 
+								VALUES ($1, $2)`, batch[i].ShortURL, batch[i].OriginalURL)
 		if err != nil {
-			if strings.Contains(err.Error(), pgerrcode.UniqueViolation) && strings.Contains(err.Error(), "urls_original_url_key") {
+			if strings.Contains(err.Error(), pgerrcode.UniqueViolation) &&
+				strings.Contains(err.Error(), "urls_original_url_key") {
 				return fmt.Errorf("%w: %w", ErrOriginalURLUniqueViolation, err)
 			}
 			return fmt.Errorf("can not set link: %w", err)

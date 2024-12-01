@@ -59,7 +59,10 @@ func (i *Interactor) CreateShortLink(ctx context.Context, originalURL string) (*
 	return &path, nil
 }
 
-func (i *Interactor) CreateShortLinks(ctx context.Context, originalURLs []models.ShortenBatchRequest) ([]models.ShortenBatchResponse, error) {
+func (i *Interactor) CreateShortLinks(
+	ctx context.Context,
+	originalURLs []models.ShortenBatchRequest,
+) ([]models.ShortenBatchResponse, error) {
 	batch := make([]repository.Batch, 0, len(originalURLs))
 	for _, originalURL := range originalURLs {
 		_, err := url.ParseRequestURI(originalURL.OriginalURL)
