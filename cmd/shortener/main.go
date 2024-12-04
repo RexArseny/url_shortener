@@ -33,29 +33,18 @@ func main() {
 		mainLogger.Fatal("Can not init config", zap.Error(err))
 	}
 
-	var urlRepository repository.Repository
-	switch {
-	case cfg.DatabaseDSN != "":
-		dbRepository, err := repository.NewDBRepository(ctx, mainLogger.Named("repository"), cfg.DatabaseDSN)
-		if err != nil {
-			mainLogger.Fatal("Can not init db repository", zap.Error(err))
-		}
-		defer dbRepository.Close()
-		urlRepository = dbRepository
-	case cfg.FileStoragePath != "":
-		linksWithFile, err := repository.NewLinksWithFile(cfg.FileStoragePath)
-		if err != nil {
-			mainLogger.Fatal("Can not init file repository", zap.Error(err))
-		}
-		defer func() {
-			if err := linksWithFile.Close(); err != nil {
-				mainLogger.Fatal("Can not close file", zap.Error(err))
-			}
-		}()
-		urlRepository = linksWithFile
-	default:
-		urlRepository = repository.NewLinks()
+	urlRepository, repositoryClose, err := repository.NewRepository(ctx, mainLogger.Named("repository"), cfg.FileStoragePath, cfg.DatabaseDSN)
+	if err != nil {
+		mainLogger.Fatal("Can not init repository", zap.Error(err))
 	}
+	defer func() {
+		if repositoryClose != nil {
+			err = repositoryClose()
+			if err != nil {
+				mainLogger.Fatal("Can not close repository", zap.Error(err))
+			}
+		}
+	}()
 
 	interactor := usecases.NewInteractor(cfg.BasicPath, urlRepository)
 	controller := controllers.NewController(mainLogger.Named("controller"), interactor)

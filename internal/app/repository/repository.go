@@ -2,22 +2,23 @@ package repository
 
 import (
 	"context"
-	"math/rand"
+	"errors"
+	"fmt"
 
 	"github.com/RexArseny/url_shortener/internal/app/models"
+	"go.uber.org/zap"
 )
 
-const (
-	shortLinkPathLength   = 8
-	linkGenerationRetries = 5
+var (
+	ErrInvalidURL                  = errors.New("provided string is not valid url")
+	ErrOriginalURLUniqueViolation  = errors.New("original url unique violation")
+	ErrReachedMaxGenerationRetries = errors.New("reached max generation retries")
 )
-
-var letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
 
 type Repository interface {
 	GetOriginalURL(ctx context.Context, shortLink string) (*string, error)
-	SetLink(ctx context.Context, originalURL string) (*string, error)
-	SetLinks(ctx context.Context, batch []models.ShortenBatchRequest) ([]string, error)
+	SetLink(ctx context.Context, originalURL string, shortURLs []string) (*string, error)
+	SetLinks(ctx context.Context, batch []models.ShortenBatchRequest, shortURLs [][]string) ([]string, error)
 	Ping(ctx context.Context) error
 }
 
@@ -26,10 +27,33 @@ type Batch struct {
 	ShortURL    string
 }
 
-func generatePath() string {
-	path := make([]rune, shortLinkPathLength)
-	for i := range path {
-		path[i] = letterRunes[rand.Intn(len(letterRunes))]
+func NewRepository(
+	ctx context.Context,
+	logger *zap.Logger,
+	fileStoragePath string,
+	databaseDSN string,
+) (Repository, func() error, error) {
+	switch {
+	case databaseDSN != "":
+		dbRepository, err := NewDBRepository(ctx, logger, databaseDSN)
+		if err != nil {
+			return nil, nil, fmt.Errorf("can not init db repository: %w", err)
+		}
+		return dbRepository,
+			func() error {
+				dbRepository.Close()
+				return nil
+			},
+			nil
+	case fileStoragePath != "":
+		linksWithFile, err := NewLinksWithFile(fileStoragePath)
+		if err != nil {
+			return nil, nil, fmt.Errorf("can not init file repository: %w", err)
+		}
+		return linksWithFile, linksWithFile.Close, nil
+	default:
+		links := NewLinks()
+		return links, nil, nil
+
 	}
-	return string(path)
 }

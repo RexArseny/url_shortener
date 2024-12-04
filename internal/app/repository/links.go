@@ -33,30 +33,26 @@ func (l *Links) GetOriginalURL(_ context.Context, shortLink string) (*string, er
 	return &originalURL, nil
 }
 
-func (l *Links) SetLink(_ context.Context, originalURL string) (*string, error) {
+func (l *Links) SetLink(_ context.Context, originalURL string, shortURLs []string) (*string, error) {
 	l.m.Lock()
 	defer l.m.Unlock()
 	if shortLink, ok := l.shortLinks[originalURL]; ok {
-		return &shortLink, models.ErrOriginalURLUniqueViolation
+		return &shortLink, ErrOriginalURLUniqueViolation
 	}
 
-	var retry int
-	for retry < linkGenerationRetries {
-		shortLink := generatePath()
-
-		if _, ok := l.originalURLs[shortLink]; ok {
-			retry++
+	for _, shortURL := range shortURLs {
+		if _, ok := l.originalURLs[shortURL]; ok {
 			continue
 		}
-		l.shortLinks[originalURL] = shortLink
-		l.originalURLs[shortLink] = originalURL
+		l.shortLinks[originalURL] = shortURL
+		l.originalURLs[shortURL] = originalURL
 
-		return &shortLink, nil
+		return &shortURL, nil
 	}
-	return nil, models.ErrReachedMaxGenerationRetries
+	return nil, ErrReachedMaxGenerationRetries
 }
 
-func (l *Links) SetLinks(_ context.Context, batch []models.ShortenBatchRequest) ([]string, error) {
+func (l *Links) SetLinks(_ context.Context, batch []models.ShortenBatchRequest, shortURLs [][]string) ([]string, error) {
 	result := make([]string, 0, len(batch))
 	l.m.Lock()
 	defer l.m.Unlock()
@@ -65,7 +61,7 @@ func (l *Links) SetLinks(_ context.Context, batch []models.ShortenBatchRequest) 
 	for i := range batch {
 		_, err := url.ParseRequestURI(batch[i].OriginalURL)
 		if err != nil {
-			return nil, models.ErrInvalidURL
+			return nil, ErrInvalidURL
 		}
 
 		if shortLink, ok := l.shortLinks[batch[i].OriginalURL]; ok {
@@ -74,31 +70,27 @@ func (l *Links) SetLinks(_ context.Context, batch []models.ShortenBatchRequest) 
 			continue
 		}
 
-		var retry int
 		var generated bool
-		var shortLink string
-		for retry < linkGenerationRetries {
-			shortLink = generatePath()
-
-			if _, ok := l.originalURLs[shortLink]; ok {
-				retry++
+		var shortURL string
+		for _, shortURL = range shortURLs[i] {
+			if _, ok := l.originalURLs[shortURL]; ok {
 				continue
 			}
-			l.shortLinks[batch[i].OriginalURL] = shortLink
-			l.originalURLs[shortLink] = batch[i].OriginalURL
+			l.shortLinks[batch[i].OriginalURL] = shortURL
+			l.originalURLs[shortURL] = batch[i].OriginalURL
 
 			generated = true
 			break
 		}
 
 		if !generated {
-			return nil, models.ErrReachedMaxGenerationRetries
+			return nil, ErrReachedMaxGenerationRetries
 		}
-		result = append(result, shortLink)
+		result = append(result, shortURL)
 	}
 
 	if originalURLUniqueViolation {
-		return result, models.ErrOriginalURLUniqueViolation
+		return result, ErrOriginalURLUniqueViolation
 	}
 
 	return result, nil

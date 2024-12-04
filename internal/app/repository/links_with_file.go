@@ -60,27 +60,24 @@ func NewLinksWithFile(fileStoragePath string) (*LinksWithFile, error) {
 	return linksWithFile, nil
 }
 
-func (l *LinksWithFile) SetLink(_ context.Context, originalURL string) (*string, error) {
+func (l *LinksWithFile) SetLink(_ context.Context, originalURL string, shortURLs []string) (*string, error) {
 	l.m.Lock()
 	defer l.m.Unlock()
 	if shortLink, ok := l.shortLinks[originalURL]; ok {
-		return &shortLink, models.ErrOriginalURLUniqueViolation
+		return &shortLink, ErrOriginalURLUniqueViolation
 	}
 
-	var retry int
-	for retry < linkGenerationRetries {
-		shortLink := generatePath()
-
-		if _, ok := l.originalURLs[shortLink]; ok {
-			retry++
+	for _, shortURL := range shortURLs {
+		if _, ok := l.originalURLs[shortURL]; ok {
 			continue
 		}
-		l.shortLinks[originalURL] = shortLink
-		l.originalURLs[shortLink] = originalURL
+		l.shortLinks[originalURL] = shortURL
+		l.originalURLs[shortURL] = originalURL
+		l.currentID++
 
 		data, err := json.Marshal(URL{
 			ID:          l.currentID,
-			ShortURL:    shortLink,
+			ShortURL:    shortURL,
 			OriginalURL: originalURL,
 		})
 		if err != nil {
@@ -91,12 +88,12 @@ func (l *LinksWithFile) SetLink(_ context.Context, originalURL string) (*string,
 			return nil, fmt.Errorf("can not write data to file: %w", err)
 		}
 
-		return &shortLink, nil
+		return &shortURL, nil
 	}
-	return nil, models.ErrReachedMaxGenerationRetries
+	return nil, ErrReachedMaxGenerationRetries
 }
 
-func (l *LinksWithFile) SetLinks(_ context.Context, batch []models.ShortenBatchRequest) ([]string, error) {
+func (l *LinksWithFile) SetLinks(_ context.Context, batch []models.ShortenBatchRequest, shortURLs [][]string) ([]string, error) {
 	result := make([]string, 0, len(batch))
 	l.m.Lock()
 	defer l.m.Unlock()
@@ -105,7 +102,7 @@ func (l *LinksWithFile) SetLinks(_ context.Context, batch []models.ShortenBatchR
 	for i := range batch {
 		_, err := url.ParseRequestURI(batch[i].OriginalURL)
 		if err != nil {
-			return nil, models.ErrInvalidURL
+			return nil, ErrInvalidURL
 		}
 
 		if shortLink, ok := l.shortLinks[batch[i].OriginalURL]; ok {
@@ -114,23 +111,19 @@ func (l *LinksWithFile) SetLinks(_ context.Context, batch []models.ShortenBatchR
 			continue
 		}
 
-		var retry int
 		var generated bool
-		var shortLink string
-		for retry < linkGenerationRetries {
-			shortLink = generatePath()
-
-			if _, ok := l.originalURLs[shortLink]; ok {
-				retry++
+		var shortURL string
+		for _, shortURL = range shortURLs[i] {
+			if _, ok := l.originalURLs[shortURL]; ok {
 				continue
 			}
-			l.shortLinks[batch[i].OriginalURL] = shortLink
-			l.originalURLs[shortLink] = batch[i].OriginalURL
+			l.shortLinks[batch[i].OriginalURL] = shortURL
+			l.originalURLs[shortURL] = batch[i].OriginalURL
 			l.currentID++
 
 			data, err := json.Marshal(URL{
 				ID:          l.currentID,
-				ShortURL:    shortLink,
+				ShortURL:    shortURL,
 				OriginalURL: batch[i].OriginalURL,
 			})
 			if err != nil {
@@ -146,13 +139,13 @@ func (l *LinksWithFile) SetLinks(_ context.Context, batch []models.ShortenBatchR
 		}
 
 		if !generated {
-			return nil, models.ErrReachedMaxGenerationRetries
+			return nil, ErrReachedMaxGenerationRetries
 		}
-		result = append(result, shortLink)
+		result = append(result, shortURL)
 	}
 
 	if originalURLUniqueViolation {
-		return result, models.ErrOriginalURLUniqueViolation
+		return result, ErrOriginalURLUniqueViolation
 	}
 
 	return result, nil

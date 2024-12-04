@@ -4,11 +4,19 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math/rand"
 	"net/url"
 
 	"github.com/RexArseny/url_shortener/internal/app/models"
 	"github.com/RexArseny/url_shortener/internal/app/repository"
 )
+
+const (
+	shortLinkPathLength   = 8
+	linkGenerationRetries = 5
+)
+
+var letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
 
 type Interactor struct {
 	urlRepository repository.Repository
@@ -25,20 +33,25 @@ func NewInteractor(basicPath string, urlRepository repository.Repository) Intera
 func (i *Interactor) CreateShortLink(ctx context.Context, originalURL string) (*string, error) {
 	_, err := url.ParseRequestURI(originalURL)
 	if err != nil {
-		return nil, models.ErrInvalidURL
+		return nil, repository.ErrInvalidURL
 	}
 
-	shortLink, err := i.urlRepository.SetLink(ctx, originalURL)
-	if err != nil {
-		if errors.Is(err, models.ErrOriginalURLUniqueViolation) && shortLink != nil {
-			path := i.formatURL(*shortLink)
+	shortURLs := make([]string, 0, linkGenerationRetries)
+	for j := 0; j < linkGenerationRetries; j++ {
+		shortURLs = append(shortURLs, i.generatePath())
+	}
 
-			return &path, models.ErrOriginalURLUniqueViolation
+	shortURL, err := i.urlRepository.SetLink(ctx, originalURL, shortURLs)
+	if err != nil {
+		if errors.Is(err, repository.ErrOriginalURLUniqueViolation) && shortURL != nil {
+			path := i.formatURL(*shortURL)
+
+			return &path, repository.ErrOriginalURLUniqueViolation
 		}
 		return nil, fmt.Errorf("can not set short link: %w", err)
 	}
 
-	path := i.formatURL(*shortLink)
+	path := i.formatURL(*shortURL)
 
 	return &path, nil
 }
@@ -47,9 +60,18 @@ func (i *Interactor) CreateShortLinks(
 	ctx context.Context,
 	batch []models.ShortenBatchRequest,
 ) ([]models.ShortenBatchResponse, error) {
-	result, err := i.urlRepository.SetLinks(ctx, batch)
+	shortURLs := make([][]string, 0, len(batch))
+	for j := 0; j < len(batch); j++ {
+		urls := make([]string, 0, linkGenerationRetries)
+		for k := 0; k < linkGenerationRetries; k++ {
+			urls = append(urls, i.generatePath())
+		}
+		shortURLs = append(shortURLs, urls)
+	}
+
+	result, err := i.urlRepository.SetLinks(ctx, batch, shortURLs)
 	if err != nil {
-		if errors.Is(err, models.ErrOriginalURLUniqueViolation) && result != nil {
+		if errors.Is(err, repository.ErrOriginalURLUniqueViolation) && result != nil {
 			response := make([]models.ShortenBatchResponse, 0, len(result))
 			for j := range result {
 				response = append(response, models.ShortenBatchResponse{
@@ -58,7 +80,7 @@ func (i *Interactor) CreateShortLinks(
 				})
 			}
 
-			return response, models.ErrOriginalURLUniqueViolation
+			return response, repository.ErrOriginalURLUniqueViolation
 		}
 		return nil, fmt.Errorf("can not create short links: %w", err)
 	}
@@ -93,6 +115,14 @@ func (i *Interactor) PingDB(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+func (i *Interactor) generatePath() string {
+	path := make([]rune, shortLinkPathLength)
+	for j := range path {
+		path[j] = letterRunes[rand.Intn(len(letterRunes))]
+	}
+	return string(path)
 }
 
 func (i *Interactor) formatURL(shortURL string) string {
