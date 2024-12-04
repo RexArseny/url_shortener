@@ -52,7 +52,11 @@ func (l *Links) SetLink(_ context.Context, originalURL string, shortURLs []strin
 	return nil, ErrReachedMaxGenerationRetries
 }
 
-func (l *Links) SetLinks(_ context.Context, batch []models.ShortenBatchRequest, shortURLs [][]string) ([]string, error) {
+func (l *Links) SetLinks(
+	_ context.Context,
+	batch []models.ShortenBatchRequest,
+	shortURLs [][]string,
+) ([]string, error) {
 	result := make([]string, 0, len(batch))
 	l.m.Lock()
 	defer l.m.Unlock()

@@ -33,7 +33,12 @@ func main() {
 		mainLogger.Fatal("Can not init config", zap.Error(err))
 	}
 
-	urlRepository, repositoryClose, err := repository.NewRepository(ctx, mainLogger.Named("repository"), cfg.FileStoragePath, cfg.DatabaseDSN)
+	urlRepository, repositoryClose, err := repository.NewRepository(
+		ctx,
+		mainLogger.Named("repository"),
+		cfg.FileStoragePath,
+		cfg.DatabaseDSN,
+	)
 	if err != nil {
 		mainLogger.Fatal("Can not init repository", zap.Error(err))
 	}

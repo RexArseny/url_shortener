@@ -54,6 +54,5 @@ func NewRepository(
 	default:
 		links := NewLinks()
 		return links, nil, nil
-
 	}
 }

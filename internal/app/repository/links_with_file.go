@@ -93,7 +93,11 @@ func (l *LinksWithFile) SetLink(_ context.Context, originalURL string, shortURLs
 	return nil, ErrReachedMaxGenerationRetries
 }
 
-func (l *LinksWithFile) SetLinks(_ context.Context, batch []models.ShortenBatchRequest, shortURLs [][]string) ([]string, error) {
+func (l *LinksWithFile) SetLinks(
+	_ context.Context,
+	batch []models.ShortenBatchRequest,
+	shortURLs [][]string,
+) ([]string, error) {
 	result := make([]string, 0, len(batch))
 	l.m.Lock()
 	defer l.m.Unlock()

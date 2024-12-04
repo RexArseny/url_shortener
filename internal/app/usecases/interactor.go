@@ -37,7 +37,7 @@ func (i *Interactor) CreateShortLink(ctx context.Context, originalURL string) (*
 	}
 
 	shortURLs := make([]string, 0, linkGenerationRetries)
-	for j := 0; j < linkGenerationRetries; j++ {
+	for range linkGenerationRetries {
 		shortURLs = append(shortURLs, i.generatePath())
 	}
 
@@ -61,9 +61,9 @@ func (i *Interactor) CreateShortLinks(
 	batch []models.ShortenBatchRequest,
 ) ([]models.ShortenBatchResponse, error) {
 	shortURLs := make([][]string, 0, len(batch))
-	for j := 0; j < len(batch); j++ {
+	for range len(batch) {
 		urls := make([]string, 0, linkGenerationRetries)
-		for k := 0; k < linkGenerationRetries; k++ {
+		for range linkGenerationRetries {
 			urls = append(urls, i.generatePath())
 		}
 		shortURLs = append(shortURLs, urls)

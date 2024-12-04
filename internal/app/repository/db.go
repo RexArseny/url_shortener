@@ -84,7 +84,11 @@ func (d *DBRepository) SetLink(ctx context.Context, originalURL string, shortURL
 	return nil, ErrReachedMaxGenerationRetries
 }
 
-func (d *DBRepository) SetLinks(ctx context.Context, batch []models.ShortenBatchRequest, shortURLs [][]string) ([]string, error) {
+func (d *DBRepository) SetLinks(
+	ctx context.Context,
+	batch []models.ShortenBatchRequest,
+	shortURLs [][]string,
+) ([]string, error) {
 	urls := make(map[string]string)
 	originalURLs := make([]string, 0, len(batch))
 	for _, originalURL := range batch {
