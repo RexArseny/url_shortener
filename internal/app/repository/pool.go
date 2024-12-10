@@ -1,3 +1,4 @@
+//nolint:wrapcheck
 package repository
 
 import (
@@ -10,7 +11,10 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-const retry = 3
+const (
+	retry      = 3
+	connClosed = "conn closed"
+)
 
 type Pool struct {
 	*pgxpool.Pool
@@ -40,14 +44,14 @@ func NewPool(ctx context.Context, connString string) (*Pool, error) {
 	}, nil
 }
 
-func (r Row) Scan(dest ...any) error {
+func (r *Row) Scan(dest ...any) error {
 	var err error
 	for range retry {
 		err = r.Row.Scan(dest...)
 		if err == nil {
 			return nil
 		}
-		if !strings.Contains(err.Error(), "conn closed") {
+		if !strings.Contains(err.Error(), connClosed) {
 			return err
 		}
 		r.Row = r.retry()
@@ -56,9 +60,9 @@ func (r Row) Scan(dest ...any) error {
 	return err
 }
 
-func (p *Pool) QueryRow(ctx context.Context, sql string, args ...any) Row {
+func (p *Pool) QueryRow(ctx context.Context, sql string, args ...any) pgx.Row {
 	row := p.Pool.QueryRow(ctx, sql, args...)
-	return Row{
+	return &Row{
 		Row: row,
 		retry: func() pgx.Row {
 			return p.Pool.QueryRow(ctx, sql, args...)
@@ -66,22 +70,22 @@ func (p *Pool) QueryRow(ctx context.Context, sql string, args ...any) Row {
 	}
 }
 
-func (p *Pool) Begin(ctx context.Context) (Tx, error) {
+func (p *Pool) Begin(ctx context.Context) (pgx.Tx, error) {
 	var err error
 	for range retry {
 		var tx pgx.Tx
 		tx, err = p.Pool.Begin(ctx)
 		if err == nil {
-			return Tx{
+			return &Tx{
 				Tx: tx,
 			}, nil
 		}
-		if !strings.Contains(err.Error(), "conn closed") {
-			return Tx{}, err
+		if !strings.Contains(err.Error(), connClosed) {
+			return nil, err
 		}
 	}
 
-	return Tx{}, err
+	return nil, err
 }
 
 func (t *Tx) Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error) {
@@ -92,7 +96,7 @@ func (t *Tx) Query(ctx context.Context, sql string, args ...any) (pgx.Rows, erro
 		if err == nil {
 			return rows, nil
 		}
-		if !strings.Contains(err.Error(), "conn closed") {
+		if !strings.Contains(err.Error(), connClosed) {
 			return nil, err
 		}
 	}
@@ -100,9 +104,9 @@ func (t *Tx) Query(ctx context.Context, sql string, args ...any) (pgx.Rows, erro
 	return nil, err
 }
 
-func (t *Tx) SendBatch(ctx context.Context, b *pgx.Batch) BatchResults {
+func (t *Tx) SendBatch(ctx context.Context, b *pgx.Batch) pgx.BatchResults {
 	batchResults := t.Tx.SendBatch(ctx, b)
-	return BatchResults{
+	return &BatchResults{
 		BatchResults: batchResults,
 		retry: func() pgx.BatchResults {
 			return t.Tx.SendBatch(ctx, b)
@@ -117,7 +121,7 @@ func (t *Tx) Commit(ctx context.Context) error {
 		if err == nil {
 			return nil
 		}
-		if !strings.Contains(err.Error(), "conn closed") {
+		if !strings.Contains(err.Error(), connClosed) {
 			return err
 		}
 	}
@@ -133,7 +137,7 @@ func (b *BatchResults) Exec() (pgconn.CommandTag, error) {
 		if err == nil {
 			return commandTag, nil
 		}
-		if !strings.Contains(err.Error(), "conn closed") {
+		if !strings.Contains(err.Error(), connClosed) {
 			return pgconn.CommandTag{}, err
 		}
 		b.BatchResults = b.retry()
@@ -149,7 +153,7 @@ func (p *Pool) Ping(ctx context.Context) error {
 		if err == nil {
 			return nil
 		}
-		if !strings.Contains(err.Error(), "conn closed") {
+		if !strings.Contains(err.Error(), connClosed) {
 			return err
 		}
 	}
