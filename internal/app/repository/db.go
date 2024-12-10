@@ -12,14 +12,14 @@ import (
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/jackc/pgerrcode"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"go.uber.org/zap"
 )
 
 type DBRepository struct {
 	logger *zap.Logger
-	pool   *pgxpool.Pool
+	pool   *Pool
 }
 
 func NewDBRepository(ctx context.Context, logger *zap.Logger, connString string) (*DBRepository, error) {
@@ -34,9 +34,9 @@ func NewDBRepository(ctx context.Context, logger *zap.Logger, connString string)
 		}
 	}
 
-	pool, err := pgxpool.New(ctx, connString)
+	pool, err := NewPool(ctx, connString)
 	if err != nil {
-		return nil, fmt.Errorf("can not create new pool for PostgreSQL server: %w", err)
+		return nil, fmt.Errorf("can not create new pool: %w", err)
 	}
 	err = pool.Ping(ctx)
 	if err != nil {
@@ -138,51 +138,64 @@ func (d *DBRepository) SetLinks(
 		}
 	}
 
-	for i := range originalURLs {
-		_, err := url.ParseRequestURI(originalURLs[i])
-		if err != nil {
-			return nil, ErrInvalidURL
+	for i := range shortURLs {
+		b := &pgx.Batch{}
+
+		for j := range originalURLs {
+			_, err := url.ParseRequestURI(originalURLs[j])
+			if err != nil {
+				return nil, ErrInvalidURL
+			}
+
+			b.Queue(`INSERT INTO urls (short_url, original_url) 
+			VALUES ($1, $2) 
+			ON CONFLICT (short_url) 
+			DO NOTHING`, shortURLs[j][i], originalURLs[j])
 		}
 
-		var generated bool
-		var shortURL string
-		for _, shortURL = range shortURLs[i] {
-			commandTag, err := tx.Exec(ctx, `INSERT INTO urls (short_url, original_url) 
-											VALUES ($1, $2) 
-											ON CONFLICT (short_url) 
-											DO NOTHING`, shortURL, originalURLs[i])
+		br := tx.SendBatch(ctx, b)
+
+		var j int
+		for k, originalURL := range originalURLs {
+			commandTag, err := br.Exec()
 			if err != nil {
 				return nil, fmt.Errorf("can not set link: %w", err)
 			}
 			if commandTag.RowsAffected() == 0 {
+				originalURLs[j] = originalURL
+				j++
 				continue
 			}
-
-			generated = true
-			break
+			urls[originalURL] = shortURLs[k][i]
 		}
 
-		if !generated {
-			return nil, ErrReachedMaxGenerationRetries
+		err = br.Close()
+		if err != nil {
+			return nil, fmt.Errorf("can not close batch: %w", err)
 		}
-		urls[originalURLs[i]] = shortURL
+
+		if len(originalURLs) == 0 {
+			err = tx.Commit(ctx)
+			if err != nil {
+				return nil, fmt.Errorf("can not commit transaction: %w", err)
+			}
+
+			result := make([]string, 0, len(batch))
+			for j := range batch {
+				result = append(result, urls[batch[j].OriginalURL])
+			}
+
+			if originalURLUniqueViolation {
+				return result, ErrOriginalURLUniqueViolation
+			}
+
+			return result, nil
+		}
+
+		originalURLs = originalURLs[:j]
 	}
 
-	err = tx.Commit(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("can not commit transaction: %w", err)
-	}
-
-	result := make([]string, 0, len(batch))
-	for i := range batch {
-		result = append(result, urls[batch[i].OriginalURL])
-	}
-
-	if originalURLUniqueViolation {
-		return result, ErrOriginalURLUniqueViolation
-	}
-
-	return result, nil
+	return nil, ErrReachedMaxGenerationRetries
 }
 
 func (d *DBRepository) Ping(ctx context.Context) error {
