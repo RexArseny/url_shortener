@@ -7,19 +7,25 @@ import (
 	"sync"
 
 	"github.com/RexArseny/url_shortener/internal/app/models"
+	"github.com/google/uuid"
 )
 
 type Links struct {
 	m            *sync.Mutex
 	shortLinks   map[string]string
-	originalURLs map[string]string
+	originalURLs map[string]ShortlURLInfo
+}
+
+type ShortlURLInfo struct {
+	originalURL string
+	userID      uuid.UUID
 }
 
 func NewLinks() *Links {
 	return &Links{
 		m:            &sync.Mutex{},
 		shortLinks:   make(map[string]string),
-		originalURLs: make(map[string]string),
+		originalURLs: make(map[string]ShortlURLInfo),
 	}
 }
 
@@ -27,13 +33,18 @@ func (l *Links) GetOriginalURL(_ context.Context, shortLink string) (*string, er
 	l.m.Lock()
 	defer l.m.Unlock()
 	originalURL := l.originalURLs[shortLink]
-	if originalURL == "" {
+	if originalURL.originalURL == "" {
 		return nil, errors.New("no original url by provided short url")
 	}
-	return &originalURL, nil
+	return &originalURL.originalURL, nil
 }
 
-func (l *Links) SetLink(_ context.Context, originalURL string, shortURLs []string) (*string, error) {
+func (l *Links) SetLink(
+	_ context.Context,
+	originalURL string,
+	shortURLs []string,
+	userID uuid.UUID,
+) (*string, error) {
 	l.m.Lock()
 	defer l.m.Unlock()
 	if shortLink, ok := l.shortLinks[originalURL]; ok {
@@ -45,7 +56,10 @@ func (l *Links) SetLink(_ context.Context, originalURL string, shortURLs []strin
 			continue
 		}
 		l.shortLinks[originalURL] = shortURL
-		l.originalURLs[shortURL] = originalURL
+		l.originalURLs[shortURL] = ShortlURLInfo{
+			originalURL: originalURL,
+			userID:      userID,
+		}
 
 		return &shortURL, nil
 	}
@@ -56,6 +70,7 @@ func (l *Links) SetLinks(
 	_ context.Context,
 	batch []models.ShortenBatchRequest,
 	shortURLs [][]string,
+	userID uuid.UUID,
 ) ([]string, error) {
 	result := make([]string, 0, len(batch))
 	l.m.Lock()
@@ -81,7 +96,10 @@ func (l *Links) SetLinks(
 				continue
 			}
 			l.shortLinks[batch[i].OriginalURL] = shortURL
-			l.originalURLs[shortURL] = batch[i].OriginalURL
+			l.originalURLs[shortURL] = ShortlURLInfo{
+				originalURL: batch[i].OriginalURL,
+				userID:      userID,
+			}
 
 			generated = true
 			break
@@ -98,6 +116,20 @@ func (l *Links) SetLinks(
 	}
 
 	return result, nil
+}
+
+func (l *Links) GetShortLinksOfUser(ctx context.Context, userID uuid.UUID) ([]models.ShortenOfUserResponse, error) {
+	var urls []models.ShortenOfUserResponse
+	for shortURL, originalURLInfo := range l.originalURLs {
+		if originalURLInfo.userID == userID {
+			urls = append(urls, models.ShortenOfUserResponse{
+				ShortURL:    shortURL,
+				OriginalURL: originalURLInfo.originalURL,
+			})
+		}
+	}
+
+	return urls, nil
 }
 
 func (l *Links) Ping(_ context.Context) error {

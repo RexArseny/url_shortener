@@ -20,8 +20,8 @@ import (
 
 func TestCreateShortLink(t *testing.T) {
 	type want struct {
-		stastusCode int
 		contenType  string
+		stastusCode int
 		response    bool
 	}
 	tests := []struct {
@@ -66,7 +66,14 @@ func TestCreateShortLink(t *testing.T) {
 			testLogger, err := logger.InitLogger()
 			assert.NoError(t, err)
 			interactor := usecases.NewInteractor(cfg.BasicPath, repository.NewLinks())
-			conntroller := NewController(testLogger.Named("controller"), interactor)
+			conntroller, err := NewController(
+				"localhost",
+				"../../../public.pem",
+				"../../../private.pem",
+				testLogger.Named("controller"),
+				interactor,
+			)
+			assert.NoError(t, err)
 
 			w := httptest.NewRecorder()
 			ctx, _ := gin.CreateTestContext(w)
@@ -96,9 +103,9 @@ func TestCreateShortLink(t *testing.T) {
 
 func TestCreateShortLinkJSON(t *testing.T) {
 	type want struct {
-		stastusCode int
-		contenType  string
 		response    map[string]interface{}
+		contenType  string
+		stastusCode int
 	}
 	tests := []struct {
 		name    string
@@ -151,7 +158,14 @@ func TestCreateShortLinkJSON(t *testing.T) {
 			testLogger, err := logger.InitLogger()
 			assert.NoError(t, err)
 			interactor := usecases.NewInteractor(cfg.BasicPath, repository.NewLinks())
-			conntroller := NewController(testLogger.Named("controller"), interactor)
+			conntroller, err := NewController(
+				"localhost",
+				"../../../public.pem",
+				"../../../private.pem",
+				testLogger.Named("controller"),
+				interactor,
+			)
+			assert.NoError(t, err)
 
 			w := httptest.NewRecorder()
 			ctx, _ := gin.CreateTestContext(w)
@@ -182,12 +196,12 @@ func TestCreateShortLinkJSON(t *testing.T) {
 
 func TestGetShortLink(t *testing.T) {
 	type input struct {
-		valid bool
 		path  string
+		valid bool
 	}
 	type want struct {
-		stastusCode int
 		location    string
+		stastusCode int
 	}
 	tests := []struct {
 		name    string
@@ -237,7 +251,14 @@ func TestGetShortLink(t *testing.T) {
 			testLogger, err := logger.InitLogger()
 			assert.NoError(t, err)
 			interactor := usecases.NewInteractor(cfg.BasicPath, repository.NewLinks())
-			conntroller := NewController(testLogger.Named("controller"), interactor)
+			conntroller, err := NewController(
+				"localhost",
+				"../../../public.pem",
+				"../../../private.pem",
+				testLogger.Named("controller"),
+				interactor,
+			)
+			assert.NoError(t, err)
 
 			w := httptest.NewRecorder()
 			ctx, _ := gin.CreateTestContext(w)

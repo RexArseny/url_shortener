@@ -1,0 +1,5 @@
+START TRANSACTION;
+
+ALTER TABLE urls ADD user_id text NOT NULL;
+
+COMMIT;
