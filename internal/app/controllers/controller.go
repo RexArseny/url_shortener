@@ -20,17 +20,19 @@ import (
 const ID = "id"
 
 type Controller struct {
-	publicKey  crypto.PublicKey
-	privateKey crypto.PrivateKey
-	logger     *zap.Logger
-	interactor usecases.Interactor
+	serverAddress string
+	publicKey     crypto.PublicKey
+	privateKey    crypto.PrivateKey
+	logger        *zap.Logger
+	interactor    usecases.Interactor
 }
 
 func NewController(
-	logger *zap.Logger,
-	interactor usecases.Interactor,
+	serverAddress string,
 	publicKeyPath string,
 	privateKeyPath string,
+	logger *zap.Logger,
+	interactor usecases.Interactor,
 ) (*Controller, error) {
 	publicKeyFile, err := os.ReadFile(publicKeyPath)
 	if err != nil {
@@ -51,10 +53,11 @@ func NewController(
 	}
 
 	return &Controller{
-		logger:     logger,
-		interactor: interactor,
-		publicKey:  publicKey,
-		privateKey: privateKey,
+		serverAddress: serverAddress,
+		publicKey:     publicKey,
+		privateKey:    privateKey,
+		logger:        logger,
+		interactor:    interactor,
 	}, nil
 }
 

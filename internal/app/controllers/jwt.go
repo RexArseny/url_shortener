@@ -74,10 +74,10 @@ func (c *Controller) setJWT(ctx *gin.Context, claims *JWT) error {
 		authorization,
 		tokenString,
 		maxAge,
-		"*",
-		"*",
-		true,
-		true,
+		"/",
+		c.serverAddress,
+		false,
+		false,
 	)
 
 	return nil

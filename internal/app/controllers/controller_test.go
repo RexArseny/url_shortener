@@ -67,10 +67,11 @@ func TestCreateShortLink(t *testing.T) {
 			assert.NoError(t, err)
 			interactor := usecases.NewInteractor(cfg.BasicPath, repository.NewLinks())
 			conntroller, err := NewController(
-				testLogger.Named("controller"),
-				interactor,
+				"localhost",
 				"../../../public.pem",
 				"../../../private.pem",
+				testLogger.Named("controller"),
+				interactor,
 			)
 			assert.NoError(t, err)
 
@@ -158,10 +159,11 @@ func TestCreateShortLinkJSON(t *testing.T) {
 			assert.NoError(t, err)
 			interactor := usecases.NewInteractor(cfg.BasicPath, repository.NewLinks())
 			conntroller, err := NewController(
-				testLogger.Named("controller"),
-				interactor,
+				"localhost",
 				"../../../public.pem",
 				"../../../private.pem",
+				testLogger.Named("controller"),
+				interactor,
 			)
 			assert.NoError(t, err)
 
@@ -250,10 +252,11 @@ func TestGetShortLink(t *testing.T) {
 			assert.NoError(t, err)
 			interactor := usecases.NewInteractor(cfg.BasicPath, repository.NewLinks())
 			conntroller, err := NewController(
-				testLogger.Named("controller"),
-				interactor,
+				"localhost",
 				"../../../public.pem",
 				"../../../private.pem",
+				testLogger.Named("controller"),
+				interactor,
 			)
 			assert.NoError(t, err)
 
