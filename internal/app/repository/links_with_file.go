@@ -56,7 +56,7 @@ func NewLinksWithFile(fileStoragePath string) (*LinksWithFile, error) {
 		}
 		userID, err := uuid.Parse(data.UserID)
 		if err != nil {
-			return nil, fmt.Errorf("can not parse user id: %w", err)
+			userID = uuid.UUID{}
 		}
 		linksWithFile.Links.shortLinks[data.OriginalURL] = data.ShortURL
 		linksWithFile.Links.originalURLs[data.ShortURL] = ShortlURLInfo{

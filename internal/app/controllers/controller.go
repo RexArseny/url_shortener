@@ -20,10 +20,10 @@ import (
 const ID = "id"
 
 type Controller struct {
-	logger     *zap.Logger
-	interactor usecases.Interactor
 	publicKey  crypto.PublicKey
 	privateKey crypto.PrivateKey
+	logger     *zap.Logger
+	interactor usecases.Interactor
 }
 
 func NewController(
@@ -59,13 +59,13 @@ func NewController(
 }
 
 func (c *Controller) CreateShortLink(ctx *gin.Context) {
-	jwt, err := c.getJWT(ctx)
+	token, err := c.getJWT(ctx)
 	if err != nil {
 		c.logger.Error("Can not get jwt", zap.Error(err))
 		ctx.String(http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError))
 		return
 	}
-	err = c.setJWT(ctx, jwt)
+	err = c.setJWT(ctx, token)
 	if err != nil {
 		c.logger.Error("Can not set jwt", zap.Error(err))
 		ctx.String(http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError))
@@ -78,7 +78,7 @@ func (c *Controller) CreateShortLink(ctx *gin.Context) {
 		return
 	}
 
-	result, err := c.interactor.CreateShortLink(ctx, string(data), jwt.UserID)
+	result, err := c.interactor.CreateShortLink(ctx, string(data), token.UserID)
 	if err != nil {
 		if errors.Is(err, repository.ErrOriginalURLUniqueViolation) && result != nil {
 			ctx.Writer.Header().Set("Content-Type", "text/plain")
@@ -105,13 +105,13 @@ func (c *Controller) CreateShortLink(ctx *gin.Context) {
 }
 
 func (c *Controller) CreateShortLinkJSON(ctx *gin.Context) {
-	jwt, err := c.getJWT(ctx)
+	token, err := c.getJWT(ctx)
 	if err != nil {
 		c.logger.Error("Can not get jwt", zap.Error(err))
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": http.StatusText(http.StatusInternalServerError)})
 		return
 	}
-	err = c.setJWT(ctx, jwt)
+	err = c.setJWT(ctx, token)
 	if err != nil {
 		c.logger.Error("Can not set jwt", zap.Error(err))
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": http.StatusText(http.StatusInternalServerError)})
@@ -131,7 +131,7 @@ func (c *Controller) CreateShortLinkJSON(ctx *gin.Context) {
 		return
 	}
 
-	result, err := c.interactor.CreateShortLink(ctx, request.URL, jwt.UserID)
+	result, err := c.interactor.CreateShortLink(ctx, request.URL, token.UserID)
 	if err != nil {
 		if errors.Is(err, repository.ErrOriginalURLUniqueViolation) && result != nil {
 			ctx.JSON(http.StatusConflict, models.ShortenResponse{
@@ -160,13 +160,13 @@ func (c *Controller) CreateShortLinkJSON(ctx *gin.Context) {
 }
 
 func (c *Controller) CreateShortLinkJSONBatch(ctx *gin.Context) {
-	jwt, err := c.getJWT(ctx)
+	token, err := c.getJWT(ctx)
 	if err != nil {
 		c.logger.Error("Can not get jwt", zap.Error(err))
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": http.StatusText(http.StatusInternalServerError)})
 		return
 	}
-	err = c.setJWT(ctx, jwt)
+	err = c.setJWT(ctx, token)
 	if err != nil {
 		c.logger.Error("Can not set jwt", zap.Error(err))
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": http.StatusText(http.StatusInternalServerError)})
@@ -186,7 +186,7 @@ func (c *Controller) CreateShortLinkJSONBatch(ctx *gin.Context) {
 		return
 	}
 
-	result, err := c.interactor.CreateShortLinks(ctx, request, jwt.UserID)
+	result, err := c.interactor.CreateShortLinks(ctx, request, token.UserID)
 	if err != nil {
 		if errors.Is(err, repository.ErrOriginalURLUniqueViolation) && result != nil {
 			ctx.JSON(http.StatusConflict, result)
@@ -234,18 +234,18 @@ func (c *Controller) PingDB(ctx *gin.Context) {
 }
 
 func (c *Controller) GetShortLinksOfUser(ctx *gin.Context) {
-	jwt, err := c.getJWT(ctx)
+	token, err := c.getJWT(ctx)
 	if err != nil {
 		c.logger.Error("Can not get jwt", zap.Error(err))
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": http.StatusText(http.StatusInternalServerError)})
 		return
 	}
-	if jwt.UserID.String() == "" {
+	if token.UserID.String() == "" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": http.StatusText(http.StatusUnauthorized)})
 		return
 	}
 
-	result, err := c.interactor.GetShortLinksOfUser(ctx, jwt.UserID)
+	result, err := c.interactor.GetShortLinksOfUser(ctx, token.UserID)
 	if err != nil {
 		c.logger.Error("Can not get short links of user", zap.Error(err))
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": http.StatusText(http.StatusInternalServerError)})
