@@ -60,9 +60,8 @@ func NewController(
 
 func (c *Controller) CreateShortLink(ctx *gin.Context) {
 	token, err := c.getJWT(ctx)
-	if err != nil {
-		c.logger.Error("Can not get jwt", zap.Error(err))
-		ctx.String(http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError))
+	if err != nil && !errors.Is(err, ErrNoJWT) {
+		ctx.String(http.StatusBadRequest, http.StatusText(http.StatusBadRequest))
 		return
 	}
 	err = c.setJWT(ctx, token)
@@ -106,9 +105,8 @@ func (c *Controller) CreateShortLink(ctx *gin.Context) {
 
 func (c *Controller) CreateShortLinkJSON(ctx *gin.Context) {
 	token, err := c.getJWT(ctx)
-	if err != nil {
-		c.logger.Error("Can not get jwt", zap.Error(err))
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": http.StatusText(http.StatusInternalServerError)})
+	if err != nil && !errors.Is(err, ErrNoJWT) {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": http.StatusText(http.StatusBadRequest)})
 		return
 	}
 	err = c.setJWT(ctx, token)
@@ -161,9 +159,8 @@ func (c *Controller) CreateShortLinkJSON(ctx *gin.Context) {
 
 func (c *Controller) CreateShortLinkJSONBatch(ctx *gin.Context) {
 	token, err := c.getJWT(ctx)
-	if err != nil {
-		c.logger.Error("Can not get jwt", zap.Error(err))
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": http.StatusText(http.StatusInternalServerError)})
+	if err != nil && !errors.Is(err, ErrNoJWT) {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": http.StatusText(http.StatusBadRequest)})
 		return
 	}
 	err = c.setJWT(ctx, token)
@@ -236,12 +233,11 @@ func (c *Controller) PingDB(ctx *gin.Context) {
 func (c *Controller) GetShortLinksOfUser(ctx *gin.Context) {
 	token, err := c.getJWT(ctx)
 	if err != nil {
-		c.logger.Error("Can not get jwt", zap.Error(err))
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": http.StatusText(http.StatusInternalServerError)})
-		return
-	}
-	if token.UserID.String() == "" {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"error": http.StatusText(http.StatusUnauthorized)})
+		if errors.Is(err, ErrNoJWT) {
+			ctx.JSON(http.StatusUnauthorized, gin.H{"error": http.StatusText(http.StatusUnauthorized)})
+			return
+		}
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": http.StatusText(http.StatusBadRequest)})
 		return
 	}
 

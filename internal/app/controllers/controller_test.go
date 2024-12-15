@@ -249,7 +249,12 @@ func TestGetShortLink(t *testing.T) {
 			testLogger, err := logger.InitLogger()
 			assert.NoError(t, err)
 			interactor := usecases.NewInteractor(cfg.BasicPath, repository.NewLinks())
-			conntroller, err := NewController(testLogger.Named("controller"), interactor, "../../../public.pem", "../../../private.pem")
+			conntroller, err := NewController(
+				testLogger.Named("controller"),
+				interactor,
+				"../../../public.pem",
+				"../../../private.pem",
+			)
 			assert.NoError(t, err)
 
 			w := httptest.NewRecorder()

@@ -15,6 +15,8 @@ const (
 	maxAge        = 900
 )
 
+var ErrNoJWT = errors.New("no jwt in cookie")
+
 type JWT struct {
 	jwt.RegisteredClaims
 	UserID uuid.UUID `json:"user_id"`
@@ -35,7 +37,7 @@ func (c *Controller) getJWT(ctx *gin.Context) (*JWT, error) {
 				ID:        uuid.New().String(),
 			},
 			UserID: userID,
-		}, nil
+		}, ErrNoJWT
 	}
 
 	token, err := jwt.ParseWithClaims(

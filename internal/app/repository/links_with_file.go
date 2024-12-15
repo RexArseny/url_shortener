@@ -18,8 +18,8 @@ const fileMode = 0o600
 type URL struct {
 	ShortURL    string `json:"short_url"`
 	OriginalURL string `json:"original_url"`
-	ID          int    `json:"id"`
 	UserID      string `json:"user_id"`
+	ID          int    `json:"id"`
 }
 
 type LinksWithFile struct {

@@ -205,7 +205,10 @@ func (d *DBRepository) SetLinks(
 	return nil, ErrReachedMaxGenerationRetries
 }
 
-func (d *DBRepository) GetShortLinksOfUser(ctx context.Context, userID uuid.UUID) ([]models.ShortenOfUserResponse, error) {
+func (d *DBRepository) GetShortLinksOfUser(
+	ctx context.Context,
+	userID uuid.UUID,
+) ([]models.ShortenOfUserResponse, error) {
 	rows, err := d.pool.Query(ctx, "SELECT short_url, original_url FROM urls WHERE user_id = $1", userID.String())
 	if err != nil {
 		return nil, fmt.Errorf("can not get urls of user: %w", err)

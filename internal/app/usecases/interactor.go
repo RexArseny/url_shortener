@@ -114,7 +114,10 @@ func (i *Interactor) GetShortLink(ctx context.Context, shortLink string) (*strin
 	return originalURL, nil
 }
 
-func (i *Interactor) GetShortLinksOfUser(ctx context.Context, userID uuid.UUID) ([]models.ShortenOfUserResponse, error) {
+func (i *Interactor) GetShortLinksOfUser(
+	ctx context.Context,
+	userID uuid.UUID,
+) ([]models.ShortenOfUserResponse, error) {
 	urls, err := i.urlRepository.GetShortLinksOfUser(ctx, userID)
 	if err != nil {
 		return nil, fmt.Errorf("can not get urls of user: %w", err)
