@@ -66,7 +66,8 @@ func TestCreateShortLink(t *testing.T) {
 			testLogger, err := logger.InitLogger()
 			assert.NoError(t, err)
 			interactor := usecases.NewInteractor(cfg.BasicPath, repository.NewLinks())
-			conntroller := NewController(testLogger.Named("controller"), interactor)
+			conntroller, err := NewController(testLogger.Named("controller"), interactor, "../../../public.pem", "../../../private.pem")
+			assert.NoError(t, err)
 
 			w := httptest.NewRecorder()
 			ctx, _ := gin.CreateTestContext(w)
@@ -151,7 +152,8 @@ func TestCreateShortLinkJSON(t *testing.T) {
 			testLogger, err := logger.InitLogger()
 			assert.NoError(t, err)
 			interactor := usecases.NewInteractor(cfg.BasicPath, repository.NewLinks())
-			conntroller := NewController(testLogger.Named("controller"), interactor)
+			conntroller, err := NewController(testLogger.Named("controller"), interactor, "../../../public.pem", "../../../private.pem")
+			assert.NoError(t, err)
 
 			w := httptest.NewRecorder()
 			ctx, _ := gin.CreateTestContext(w)
@@ -237,7 +239,8 @@ func TestGetShortLink(t *testing.T) {
 			testLogger, err := logger.InitLogger()
 			assert.NoError(t, err)
 			interactor := usecases.NewInteractor(cfg.BasicPath, repository.NewLinks())
-			conntroller := NewController(testLogger.Named("controller"), interactor)
+			conntroller, err := NewController(testLogger.Named("controller"), interactor, "../../../public.pem", "../../../private.pem")
+			assert.NoError(t, err)
 
 			w := httptest.NewRecorder()
 			ctx, _ := gin.CreateTestContext(w)

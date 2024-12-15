@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/RexArseny/url_shortener/internal/app/models"
+	"github.com/google/uuid"
 	"go.uber.org/zap"
 )
 
@@ -17,8 +18,9 @@ var (
 
 type Repository interface {
 	GetOriginalURL(ctx context.Context, shortLink string) (*string, error)
-	SetLink(ctx context.Context, originalURL string, shortURLs []string) (*string, error)
-	SetLinks(ctx context.Context, batch []models.ShortenBatchRequest, shortURLs [][]string) ([]string, error)
+	GetShortLinksOfUser(ctx context.Context, userID uuid.UUID) ([]models.ShortenOfUserResponse, error)
+	SetLink(ctx context.Context, originalURL string, shortURLs []string, userID uuid.UUID) (*string, error)
+	SetLinks(ctx context.Context, batch []models.ShortenBatchRequest, shortURLs [][]string, userID uuid.UUID) ([]string, error)
 	Ping(ctx context.Context) error
 }
 

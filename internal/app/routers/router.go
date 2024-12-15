@@ -14,7 +14,7 @@ import (
 
 func NewRouter(
 	cfg *config.Config,
-	controller controllers.Controller,
+	controller *controllers.Controller,
 	middleware middlewares.Middleware) (*gin.Engine, error) {
 	prefix, err := getURLPrefix(cfg)
 	if err != nil {
@@ -28,6 +28,7 @@ func NewRouter(
 	router.POST("/api/shorten", controller.CreateShortLinkJSON)
 	router.POST("/api/shorten/batch", controller.CreateShortLinkJSONBatch)
 	router.GET(fmt.Sprintf("%s/:%s", *prefix, controllers.ID), controller.GetShortLink)
+	router.GET("/api/user/urls", controller.GetShortLinksOfUser)
 	router.GET("/ping", controller.PingDB)
 
 	return router, nil

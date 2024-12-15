@@ -95,7 +95,8 @@ func TestCreateShortLink(t *testing.T) {
 			}
 
 			interactor := usecases.NewInteractor(cfg.BasicPath, urlRepository)
-			conntroller := controllers.NewController(testLogger.Named("controller"), interactor)
+			conntroller, err := controllers.NewController(testLogger.Named("controller"), interactor, "../../public.pem", "../../private.pem")
+			assert.NoError(t, err)
 			middleware := middlewares.NewMiddleware(testLogger.Named("middleware"))
 			router, err := routers.NewRouter(&cfg, conntroller, middleware)
 			assert.NoError(t, err)
@@ -206,7 +207,8 @@ func TestCreateShortLinkJSON(t *testing.T) {
 			}
 
 			interactor := usecases.NewInteractor(cfg.BasicPath, urlRepository)
-			conntroller := controllers.NewController(testLogger.Named("controller"), interactor)
+			conntroller, err := controllers.NewController(testLogger.Named("controller"), interactor, "../../public.pem", "../../private.pem")
+			assert.NoError(t, err)
 			middleware := middlewares.NewMiddleware(testLogger.Named("middleware"))
 			router, err := routers.NewRouter(&cfg, conntroller, middleware)
 			assert.NoError(t, err)
@@ -318,7 +320,8 @@ func TestGetShortLink(t *testing.T) {
 			}
 
 			interactor := usecases.NewInteractor(cfg.BasicPath, urlRepository)
-			conntroller := controllers.NewController(testLogger.Named("controller"), interactor)
+			conntroller, err := controllers.NewController(testLogger.Named("controller"), interactor, "../../public.pem", "../../private.pem")
+			assert.NoError(t, err)
 			middleware := middlewares.NewMiddleware(testLogger.Named("middleware"))
 			router, err := routers.NewRouter(&cfg, conntroller, middleware)
 			assert.NoError(t, err)

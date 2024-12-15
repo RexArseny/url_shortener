@@ -10,6 +10,7 @@ import (
 	"os"
 
 	"github.com/RexArseny/url_shortener/internal/app/models"
+	"github.com/google/uuid"
 )
 
 const fileMode = 0o600
@@ -18,6 +19,7 @@ type URL struct {
 	ShortURL    string `json:"short_url"`
 	OriginalURL string `json:"original_url"`
 	ID          int    `json:"id"`
+	UserID      string `json:"user_id"`
 }
 
 type LinksWithFile struct {
@@ -52,15 +54,27 @@ func NewLinksWithFile(fileStoragePath string) (*LinksWithFile, error) {
 		if _, ok := linksWithFile.Links.originalURLs[data.ShortURL]; ok {
 			return nil, errors.New("duplicate short url in file")
 		}
+		userID, err := uuid.Parse(data.UserID)
+		if err != nil {
+			return nil, fmt.Errorf("can not parse user id: %w", err)
+		}
 		linksWithFile.Links.shortLinks[data.OriginalURL] = data.ShortURL
-		linksWithFile.Links.originalURLs[data.ShortURL] = data.OriginalURL
+		linksWithFile.Links.originalURLs[data.ShortURL] = ShortlURLInfo{
+			originalURL: data.OriginalURL,
+			userID:      userID,
+		}
 		linksWithFile.currentID++
 	}
 
 	return linksWithFile, nil
 }
 
-func (l *LinksWithFile) SetLink(_ context.Context, originalURL string, shortURLs []string) (*string, error) {
+func (l *LinksWithFile) SetLink(
+	_ context.Context,
+	originalURL string,
+	shortURLs []string,
+	userID uuid.UUID,
+) (*string, error) {
 	l.m.Lock()
 	defer l.m.Unlock()
 	if shortLink, ok := l.shortLinks[originalURL]; ok {
@@ -72,7 +86,10 @@ func (l *LinksWithFile) SetLink(_ context.Context, originalURL string, shortURLs
 			continue
 		}
 		l.shortLinks[originalURL] = shortURL
-		l.originalURLs[shortURL] = originalURL
+		l.originalURLs[shortURL] = ShortlURLInfo{
+			originalURL: originalURL,
+			userID:      userID,
+		}
 		l.currentID++
 
 		data, err := json.Marshal(URL{
@@ -97,6 +114,7 @@ func (l *LinksWithFile) SetLinks(
 	_ context.Context,
 	batch []models.ShortenBatchRequest,
 	shortURLs [][]string,
+	userID uuid.UUID,
 ) ([]string, error) {
 	result := make([]string, 0, len(batch))
 	l.m.Lock()
@@ -122,7 +140,10 @@ func (l *LinksWithFile) SetLinks(
 				continue
 			}
 			l.shortLinks[batch[i].OriginalURL] = shortURL
-			l.originalURLs[shortURL] = batch[i].OriginalURL
+			l.originalURLs[shortURL] = ShortlURLInfo{
+				originalURL: batch[i].OriginalURL,
+				userID:      userID,
+			}
 			l.currentID++
 
 			data, err := json.Marshal(URL{
@@ -153,10 +174,6 @@ func (l *LinksWithFile) SetLinks(
 	}
 
 	return result, nil
-}
-
-func (l *LinksWithFile) Ping(_ context.Context) error {
-	return errors.New("service in file storage mode")
 }
 
 func (l *LinksWithFile) Close() error {
