@@ -27,10 +27,10 @@ type URLsForDelete struct {
 }
 
 type Interactor struct {
-	logger        *zap.Logger
 	urlRepository repository.Repository
-	basicPath     string
+	logger        *zap.Logger
 	urlsForDelete chan URLsForDelete
+	basicPath     string
 }
 
 func NewInteractor(

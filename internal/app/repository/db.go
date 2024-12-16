@@ -245,7 +245,8 @@ func (d *DBRepository) GetShortLinksOfUser(
 }
 
 func (d *DBRepository) DeleteURLs(ctx context.Context, urls []string, userID uuid.UUID) error {
-	_, err := d.pool.Exec(ctx, "UPDATE urls SET deleted = true WHERE user_id = $1 AND short_url = ANY ($2)", userID.String(), urls)
+	_, err := d.pool.Exec(ctx, `UPDATE urls SET deleted = true 
+								WHERE user_id = $1 AND short_url = ANY ($2)`, userID.String(), urls)
 	if err != nil {
 		return fmt.Errorf("can not delete urls: %w", err)
 	}
