@@ -1,0 +1,5 @@
+START TRANSACTION;
+
+ALTER TABLE urls ADD deleted bool NOT NULL DEFAULT false;
+
+COMMIT;

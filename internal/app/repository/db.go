@@ -52,9 +52,14 @@ func NewDBRepository(ctx context.Context, logger *zap.Logger, connString string)
 
 func (d *DBRepository) GetOriginalURL(ctx context.Context, shortLink string) (*string, error) {
 	var originalURL string
-	err := d.pool.QueryRow(ctx, "SELECT original_url FROM urls WHERE short_url=$1", shortLink).Scan(&originalURL)
+	var deleted bool
+	err := d.pool.QueryRow(ctx, `SELECT original_url, deleted 
+								FROM urls WHERE short_url=$1`, shortLink).Scan(&originalURL, &deleted)
 	if err != nil {
 		return nil, fmt.Errorf("can not get original url: %w", err)
+	}
+	if deleted {
+		return nil, ErrURLIsDeleted
 	}
 	return &originalURL, nil
 }
@@ -237,6 +242,15 @@ func (d *DBRepository) GetShortLinksOfUser(
 	}
 
 	return urls, nil
+}
+
+func (d *DBRepository) DeleteURLs(ctx context.Context, urls []string, userID uuid.UUID) error {
+	_, err := d.pool.Exec(ctx, "UPDATE urls SET deleted = true WHERE user_id = $1 AND short_url = ANY ($2)", userID.String(), urls)
+	if err != nil {
+		return fmt.Errorf("can not delete urls: %w", err)
+	}
+
+	return nil
 }
 
 func (d *DBRepository) Ping(ctx context.Context) error {

@@ -20,15 +20,13 @@ import (
 const ID = "id"
 
 type Controller struct {
-	serverAddress string
-	publicKey     crypto.PublicKey
-	privateKey    crypto.PrivateKey
-	logger        *zap.Logger
-	interactor    usecases.Interactor
+	publicKey  crypto.PublicKey
+	privateKey crypto.PrivateKey
+	logger     *zap.Logger
+	interactor usecases.Interactor
 }
 
 func NewController(
-	serverAddress string,
 	publicKeyPath string,
 	privateKeyPath string,
 	logger *zap.Logger,
@@ -53,11 +51,10 @@ func NewController(
 	}
 
 	return &Controller{
-		serverAddress: serverAddress,
-		publicKey:     publicKey,
-		privateKey:    privateKey,
-		logger:        logger,
-		interactor:    interactor,
+		publicKey:  publicKey,
+		privateKey: privateKey,
+		logger:     logger,
+		interactor: interactor,
 	}, nil
 }
 
@@ -209,6 +206,10 @@ func (c *Controller) GetShortLink(ctx *gin.Context) {
 
 	result, err := c.interactor.GetShortLink(ctx, data)
 	if err != nil {
+		if errors.Is(err, repository.ErrURLIsDeleted) {
+			ctx.String(http.StatusGone, http.StatusText(http.StatusGone))
+			return
+		}
 		ctx.String(http.StatusBadRequest, http.StatusText(http.StatusBadRequest))
 		return
 	}
@@ -257,4 +258,38 @@ func (c *Controller) GetShortLinksOfUser(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, result)
+}
+
+func (c *Controller) DeleteURLs(ctx *gin.Context) {
+	token, err := c.getJWT(ctx)
+	if err != nil {
+		if errors.Is(err, ErrNoJWT) {
+			ctx.JSON(http.StatusUnauthorized, gin.H{"error": http.StatusText(http.StatusUnauthorized)})
+			return
+		}
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": http.StatusText(http.StatusBadRequest)})
+		return
+	}
+
+	data, err := io.ReadAll(ctx.Request.Body)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": http.StatusText(http.StatusBadRequest)})
+		return
+	}
+
+	var request []string
+	err = json.Unmarshal(data, &request)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": http.StatusText(http.StatusBadRequest)})
+		return
+	}
+
+	err = c.interactor.DeleteURLs(ctx, request, token.UserID)
+	if err != nil {
+		c.logger.Error("Can not delete urls", zap.Error(err))
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": http.StatusText(http.StatusInternalServerError)})
+		return
+	}
+
+	ctx.JSON(http.StatusAccepted, gin.H{"status": http.StatusText(http.StatusAccepted)})
 }

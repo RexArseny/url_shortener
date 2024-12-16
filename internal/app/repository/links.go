@@ -19,6 +19,7 @@ type Links struct {
 type ShortlURLInfo struct {
 	originalURL string
 	userID      uuid.UUID
+	deleted     bool
 }
 
 func NewLinks() *Links {
@@ -35,6 +36,9 @@ func (l *Links) GetOriginalURL(_ context.Context, shortLink string) (*string, er
 	originalURL := l.originalURLs[shortLink]
 	if originalURL.originalURL == "" {
 		return nil, errors.New("no original url by provided short url")
+	}
+	if originalURL.deleted {
+		return nil, ErrURLIsDeleted
 	}
 	return &originalURL.originalURL, nil
 }
@@ -59,6 +63,7 @@ func (l *Links) SetLink(
 		l.originalURLs[shortURL] = ShortlURLInfo{
 			originalURL: originalURL,
 			userID:      userID,
+			deleted:     false,
 		}
 
 		return &shortURL, nil
@@ -99,6 +104,7 @@ func (l *Links) SetLinks(
 			l.originalURLs[shortURL] = ShortlURLInfo{
 				originalURL: batch[i].OriginalURL,
 				userID:      userID,
+				deleted:     false,
 			}
 
 			generated = true
@@ -118,7 +124,10 @@ func (l *Links) SetLinks(
 	return result, nil
 }
 
-func (l *Links) GetShortLinksOfUser(ctx context.Context, userID uuid.UUID) ([]models.ShortenOfUserResponse, error) {
+func (l *Links) GetShortLinksOfUser(_ context.Context, userID uuid.UUID) ([]models.ShortenOfUserResponse, error) {
+	l.m.Lock()
+	defer l.m.Unlock()
+
 	var urls []models.ShortenOfUserResponse
 	for shortURL, originalURLInfo := range l.originalURLs {
 		if originalURLInfo.userID == userID {
@@ -130,6 +139,22 @@ func (l *Links) GetShortLinksOfUser(ctx context.Context, userID uuid.UUID) ([]mo
 	}
 
 	return urls, nil
+}
+
+func (l *Links) DeleteURLs(_ context.Context, urls []string, userID uuid.UUID) error {
+	l.m.Lock()
+	defer l.m.Unlock()
+
+	for _, shortURL := range urls {
+		if shortlURLInfo, ok := l.originalURLs[shortURL]; ok {
+			if shortlURLInfo.userID == userID {
+				shortlURLInfo.deleted = true
+				l.originalURLs[shortURL] = shortlURLInfo
+			}
+		}
+	}
+
+	return nil
 }
 
 func (l *Links) Ping(_ context.Context) error {

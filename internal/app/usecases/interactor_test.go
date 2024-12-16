@@ -7,14 +7,25 @@ import (
 	"testing"
 
 	"github.com/RexArseny/url_shortener/internal/app/config"
+	"github.com/RexArseny/url_shortener/internal/app/logger"
 	"github.com/RexArseny/url_shortener/internal/app/repository"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestCreateShortLink(t *testing.T) {
+	ctx := context.Background()
+
+	testLogger, err := logger.InitLogger()
+	assert.NoError(t, err)
+
 	userID := uuid.New()
-	interactor := NewInteractor(config.DefaultBasicPath, repository.NewLinks())
+	interactor := NewInteractor(
+		ctx,
+		testLogger.Named("interactor"),
+		config.DefaultBasicPath,
+		repository.NewLinks(),
+	)
 
 	result1, err := interactor.CreateShortLink(context.Background(), "", userID)
 	assert.Error(t, err)
@@ -37,8 +48,18 @@ func TestCreateShortLink(t *testing.T) {
 }
 
 func TestGetShortLink(t *testing.T) {
+	ctx := context.Background()
+
+	testLogger, err := logger.InitLogger()
+	assert.NoError(t, err)
+
 	userID := uuid.New()
-	interactor := NewInteractor(config.DefaultBasicPath, repository.NewLinks())
+	interactor := NewInteractor(
+		ctx,
+		testLogger.Named("interactor"),
+		config.DefaultBasicPath,
+		repository.NewLinks(),
+	)
 
 	link, err := interactor.CreateShortLink(context.Background(), "https://ya.ru", userID)
 	assert.NoError(t, err)

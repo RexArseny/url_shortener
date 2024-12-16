@@ -29,6 +29,7 @@ func NewRouter(
 	router.POST("/api/shorten/batch", controller.CreateShortLinkJSONBatch)
 	router.GET(fmt.Sprintf("%s/:%s", *prefix, controllers.ID), controller.GetShortLink)
 	router.GET("/api/user/urls", controller.GetShortLinksOfUser)
+	router.DELETE("/api/user/urls", controller.DeleteURLs)
 	router.GET("/ping", controller.PingDB)
 
 	return router, nil

@@ -94,9 +94,13 @@ func TestCreateShortLink(t *testing.T) {
 				urlRepository = repository.NewLinks()
 			}
 
-			interactor := usecases.NewInteractor(cfg.BasicPath, urlRepository)
+			interactor := usecases.NewInteractor(
+				context.Background(),
+				testLogger.Named("interactor"),
+				cfg.BasicPath,
+				urlRepository,
+			)
 			conntroller, err := controllers.NewController(
-				"localhost",
 				"../../public.pem",
 				"../../private.pem",
 				testLogger.Named("controller"),
@@ -212,9 +216,13 @@ func TestCreateShortLinkJSON(t *testing.T) {
 				urlRepository = repository.NewLinks()
 			}
 
-			interactor := usecases.NewInteractor(cfg.BasicPath, urlRepository)
+			interactor := usecases.NewInteractor(
+				context.Background(),
+				testLogger.Named("interactor"),
+				cfg.BasicPath,
+				urlRepository,
+			)
 			conntroller, err := controllers.NewController(
-				"localhost",
 				"../../public.pem",
 				"../../private.pem",
 				testLogger.Named("controller"),
@@ -331,9 +339,13 @@ func TestGetShortLink(t *testing.T) {
 				urlRepository = repository.NewLinks()
 			}
 
-			interactor := usecases.NewInteractor(cfg.BasicPath, urlRepository)
+			interactor := usecases.NewInteractor(
+				context.Background(),
+				testLogger.Named("interactor"),
+				cfg.BasicPath,
+				urlRepository,
+			)
 			conntroller, err := controllers.NewController(
-				"localhost",
 				"../../public.pem",
 				"../../private.pem",
 				testLogger.Named("controller"),

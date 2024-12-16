@@ -14,6 +14,7 @@ var (
 	ErrInvalidURL                  = errors.New("provided string is not valid url")
 	ErrOriginalURLUniqueViolation  = errors.New("original url unique violation")
 	ErrReachedMaxGenerationRetries = errors.New("reached max generation retries")
+	ErrURLIsDeleted                = errors.New("url is deleted")
 )
 
 type Repository interface {
@@ -37,6 +38,11 @@ type Repository interface {
 		shortURLs [][]string,
 		userID uuid.UUID,
 	) ([]string, error)
+	DeleteURLs(
+		ctx context.Context,
+		urls []string,
+		userID uuid.UUID,
+	) error
 	Ping(ctx context.Context) error
 }
 

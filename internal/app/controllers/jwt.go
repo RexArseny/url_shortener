@@ -75,7 +75,7 @@ func (c *Controller) setJWT(ctx *gin.Context, claims *JWT) error {
 		tokenString,
 		maxAge,
 		"/",
-		c.serverAddress,
+		"",
 		false,
 		false,
 	)

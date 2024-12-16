@@ -51,9 +51,8 @@ func main() {
 		}
 	}()
 
-	interactor := usecases.NewInteractor(cfg.BasicPath, urlRepository)
+	interactor := usecases.NewInteractor(ctx, mainLogger.Named("interactor"), cfg.BasicPath, urlRepository)
 	controller, err := controllers.NewController(
-		cfg.ServerAddress,
 		"public.pem",
 		"private.pem",
 		mainLogger.Named("controller"),

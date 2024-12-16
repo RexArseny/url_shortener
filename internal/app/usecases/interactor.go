@@ -10,24 +10,53 @@ import (
 	"github.com/RexArseny/url_shortener/internal/app/models"
 	"github.com/RexArseny/url_shortener/internal/app/repository"
 	"github.com/google/uuid"
+	"go.uber.org/zap"
 )
 
 const (
-	shortLinkPathLength   = 8
-	linkGenerationRetries = 5
+	shortLinkPathLength      = 8
+	linkGenerationRetries    = 5
+	urlsForDeleteChannelSize = 10
 )
 
 var letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
 
-type Interactor struct {
-	urlRepository repository.Repository
-	basicPath     string
+type URLsForDelete struct {
+	URLs   []string
+	UserID uuid.UUID
 }
 
-func NewInteractor(basicPath string, urlRepository repository.Repository) Interactor {
-	return Interactor{
+type Interactor struct {
+	logger        *zap.Logger
+	urlRepository repository.Repository
+	basicPath     string
+	urlsForDelete chan URLsForDelete
+}
+
+func NewInteractor(
+	ctx context.Context,
+	logger *zap.Logger,
+	basicPath string,
+	urlRepository repository.Repository,
+) Interactor {
+	interactor := Interactor{
+		logger:        logger,
 		urlRepository: urlRepository,
 		basicPath:     basicPath,
+		urlsForDelete: make(chan URLsForDelete, urlsForDeleteChannelSize),
+	}
+
+	go interactor.run(ctx)
+
+	return interactor
+}
+
+func (i *Interactor) run(ctx context.Context) {
+	for urlForDelete := range i.urlsForDelete {
+		err := i.urlRepository.DeleteURLs(ctx, urlForDelete.URLs, urlForDelete.UserID)
+		if err != nil {
+			i.logger.Error("Can not delete urls", zap.Error(err))
+		}
 	}
 }
 
@@ -132,6 +161,17 @@ func (i *Interactor) GetShortLinksOfUser(
 	}
 
 	return response, nil
+}
+
+func (i *Interactor) DeleteURLs(ctx context.Context, urls []string, userID uuid.UUID) error {
+	go func() {
+		i.urlsForDelete <- URLsForDelete{
+			URLs:   urls,
+			UserID: userID,
+		}
+	}()
+
+	return nil
 }
 
 func (i *Interactor) PingDB(ctx context.Context) error {
