@@ -56,6 +56,7 @@ func (i *Interactor) run(ctx context.Context) {
 		err := i.urlRepository.DeleteURLs(ctx, urlForDelete.URLs, urlForDelete.UserID)
 		if err != nil {
 			i.logger.Error("Can not delete urls", zap.Error(err))
+			return
 		}
 	}
 }

@@ -13,6 +13,7 @@ import (
 
 	"github.com/RexArseny/url_shortener/internal/app/config"
 	"github.com/RexArseny/url_shortener/internal/app/logger"
+	"github.com/RexArseny/url_shortener/internal/app/middlewares"
 	"github.com/RexArseny/url_shortener/internal/app/repository"
 	"github.com/RexArseny/url_shortener/internal/app/usecases"
 	"github.com/gin-gonic/gin"
@@ -72,17 +73,20 @@ func TestCreateShortLink(t *testing.T) {
 				cfg.BasicPath,
 				repository.NewLinks(),
 			)
-			conntroller, err := NewController(
-				"../../../public.pem",
-				"../../../private.pem",
-				testLogger.Named("controller"),
-				interactor,
-			)
-			assert.NoError(t, err)
+			conntroller := NewController(testLogger.Named("controller"), interactor)
 
 			w := httptest.NewRecorder()
 			ctx, _ := gin.CreateTestContext(w)
 			ctx.Request = httptest.NewRequest(http.MethodPost, "/", strings.NewReader(tt.request))
+
+			middleware, err := middlewares.NewMiddleware(
+				"../../../public.pem",
+				"../../../private.pem",
+				testLogger.Named("middleware"),
+			)
+			assert.NoError(t, err)
+			auth := middleware.Auth()
+			auth(ctx)
 
 			conntroller.CreateShortLink(ctx)
 
@@ -168,17 +172,20 @@ func TestCreateShortLinkJSON(t *testing.T) {
 				cfg.BasicPath,
 				repository.NewLinks(),
 			)
-			conntroller, err := NewController(
-				"../../../public.pem",
-				"../../../private.pem",
-				testLogger.Named("controller"),
-				interactor,
-			)
-			assert.NoError(t, err)
+			conntroller := NewController(testLogger.Named("controller"), interactor)
 
 			w := httptest.NewRecorder()
 			ctx, _ := gin.CreateTestContext(w)
 			ctx.Request = httptest.NewRequest(http.MethodPost, "/api/shorten", strings.NewReader(tt.request))
+
+			middleware, err := middlewares.NewMiddleware(
+				"../../../public.pem",
+				"../../../private.pem",
+				testLogger.Named("middleware"),
+			)
+			assert.NoError(t, err)
+			auth := middleware.Auth()
+			auth(ctx)
 
 			conntroller.CreateShortLinkJSON(ctx)
 
@@ -265,17 +272,20 @@ func TestGetShortLink(t *testing.T) {
 				cfg.BasicPath,
 				repository.NewLinks(),
 			)
-			conntroller, err := NewController(
-				"../../../public.pem",
-				"../../../private.pem",
-				testLogger.Named("controller"),
-				interactor,
-			)
-			assert.NoError(t, err)
+			conntroller := NewController(testLogger.Named("controller"), interactor)
 
 			w := httptest.NewRecorder()
 			ctx, _ := gin.CreateTestContext(w)
 			ctx.Request = httptest.NewRequest(http.MethodPost, "/", strings.NewReader("https://ya.ru"))
+
+			middleware, err := middlewares.NewMiddleware(
+				"../../../public.pem",
+				"../../../private.pem",
+				testLogger.Named("middleware"),
+			)
+			assert.NoError(t, err)
+			auth := middleware.Auth()
+			auth(ctx)
 
 			conntroller.CreateShortLink(ctx)
 

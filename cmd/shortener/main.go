@@ -52,16 +52,15 @@ func main() {
 	}()
 
 	interactor := usecases.NewInteractor(ctx, mainLogger.Named("interactor"), cfg.BasicPath, urlRepository)
-	controller, err := controllers.NewController(
-		"public.pem",
-		"private.pem",
-		mainLogger.Named("controller"),
-		interactor,
+	controller := controllers.NewController(mainLogger.Named("controller"), interactor)
+	middleware, err := middlewares.NewMiddleware(
+		cfg.PublicKeyPath,
+		cfg.PrivateKeyPath,
+		mainLogger.Named("middleware"),
 	)
 	if err != nil {
-		mainLogger.Fatal("Can not init controller", zap.Error(err))
+		mainLogger.Fatal("Can not init middleware", zap.Error(err))
 	}
-	middleware := middlewares.NewMiddleware(mainLogger.Named("middleware"))
 	router, err := routers.NewRouter(cfg, controller, middleware)
 	if err != nil {
 		mainLogger.Fatal("Can not init router", zap.Error(err))

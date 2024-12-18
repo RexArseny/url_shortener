@@ -76,7 +76,7 @@ func (d *DBRepository) SetLink(
 									VALUES ($1, $2, $3) 
 									ON CONFLICT (original_url) 
 									DO UPDATE SET original_url=EXCLUDED.original_url 
-									RETURNING short_url`, shortURL, originalURL, userID.String()).Scan(&link)
+									RETURNING short_url`, shortURL, originalURL, userID).Scan(&link)
 		if err != nil {
 			var pgErr *pgconn.PgError
 			if errors.As(err, &pgErr) &&
@@ -162,7 +162,7 @@ func (d *DBRepository) SetLinks(
 			b.Queue(`INSERT INTO urls (short_url, original_url, user_id) 
 			VALUES ($1, $2, $3) 
 			ON CONFLICT (short_url) 
-			DO NOTHING`, shortURLs[j][i], originalURLs[j], userID.String())
+			DO NOTHING`, shortURLs[j][i], originalURLs[j], userID)
 		}
 
 		br := tx.SendBatch(ctx, b)
@@ -214,7 +214,7 @@ func (d *DBRepository) GetShortLinksOfUser(
 	ctx context.Context,
 	userID uuid.UUID,
 ) ([]models.ShortenOfUserResponse, error) {
-	rows, err := d.pool.Query(ctx, "SELECT short_url, original_url FROM urls WHERE user_id = $1", userID.String())
+	rows, err := d.pool.Query(ctx, "SELECT short_url, original_url FROM urls WHERE user_id = $1", userID)
 	if err != nil {
 		return nil, fmt.Errorf("can not get urls of user: %w", err)
 	}
@@ -246,7 +246,7 @@ func (d *DBRepository) GetShortLinksOfUser(
 
 func (d *DBRepository) DeleteURLs(ctx context.Context, urls []string, userID uuid.UUID) error {
 	_, err := d.pool.Exec(ctx, `UPDATE urls SET deleted = true 
-								WHERE user_id = $1 AND short_url = ANY ($2)`, userID.String(), urls)
+								WHERE user_id = $1 AND short_url = ANY ($2)`, userID, urls)
 	if err != nil {
 		return fmt.Errorf("can not delete urls: %w", err)
 	}

@@ -1,73 +1,42 @@
 package controllers
 
 import (
-	"crypto"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"net/http"
-	"os"
 
+	"github.com/RexArseny/url_shortener/internal/app/middlewares"
 	"github.com/RexArseny/url_shortener/internal/app/models"
 	"github.com/RexArseny/url_shortener/internal/app/repository"
 	"github.com/RexArseny/url_shortener/internal/app/usecases"
 	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt/v5"
 	"go.uber.org/zap"
 )
 
 const ID = "id"
 
 type Controller struct {
-	publicKey  crypto.PublicKey
-	privateKey crypto.PrivateKey
 	logger     *zap.Logger
 	interactor usecases.Interactor
 }
 
-func NewController(
-	publicKeyPath string,
-	privateKeyPath string,
-	logger *zap.Logger,
-	interactor usecases.Interactor,
-) (*Controller, error) {
-	publicKeyFile, err := os.ReadFile(publicKeyPath)
-	if err != nil {
-		return nil, fmt.Errorf("can not open public.pem file: %w", err)
-	}
-	publicKey, err := jwt.ParseEdPublicKeyFromPEM(publicKeyFile)
-	if err != nil {
-		return nil, fmt.Errorf("can not parse public key: %w", err)
-	}
-
-	privateKeyFile, err := os.ReadFile(privateKeyPath)
-	if err != nil {
-		return nil, fmt.Errorf("can not open private.pem file: %w", err)
-	}
-	privateKey, err := jwt.ParseEdPrivateKeyFromPEM(privateKeyFile)
-	if err != nil {
-		return nil, fmt.Errorf("can not parse private key: %w", err)
-	}
-
-	return &Controller{
-		publicKey:  publicKey,
-		privateKey: privateKey,
+func NewController(logger *zap.Logger, interactor usecases.Interactor) Controller {
+	return Controller{
 		logger:     logger,
 		interactor: interactor,
-	}, nil
+	}
 }
 
 func (c *Controller) CreateShortLink(ctx *gin.Context) {
-	token, err := c.getJWT(ctx)
-	if err != nil && !errors.Is(err, ErrNoJWT) {
+	tokenValue, ok := ctx.Get(middlewares.Authorization)
+	if !ok {
 		ctx.String(http.StatusBadRequest, http.StatusText(http.StatusBadRequest))
 		return
 	}
-	err = c.setJWT(ctx, token)
-	if err != nil {
-		c.logger.Error("Can not set jwt", zap.Error(err))
-		ctx.String(http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError))
+	token, ok := tokenValue.(*middlewares.JWT)
+	if !ok {
+		ctx.String(http.StatusBadRequest, http.StatusText(http.StatusBadRequest))
 		return
 	}
 
@@ -104,15 +73,14 @@ func (c *Controller) CreateShortLink(ctx *gin.Context) {
 }
 
 func (c *Controller) CreateShortLinkJSON(ctx *gin.Context) {
-	token, err := c.getJWT(ctx)
-	if err != nil && !errors.Is(err, ErrNoJWT) {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": http.StatusText(http.StatusBadRequest)})
+	tokenValue, ok := ctx.Get(middlewares.Authorization)
+	if !ok {
+		ctx.String(http.StatusBadRequest, http.StatusText(http.StatusBadRequest))
 		return
 	}
-	err = c.setJWT(ctx, token)
-	if err != nil {
-		c.logger.Error("Can not set jwt", zap.Error(err))
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": http.StatusText(http.StatusInternalServerError)})
+	token, ok := tokenValue.(*middlewares.JWT)
+	if !ok {
+		ctx.String(http.StatusBadRequest, http.StatusText(http.StatusBadRequest))
 		return
 	}
 
@@ -158,15 +126,14 @@ func (c *Controller) CreateShortLinkJSON(ctx *gin.Context) {
 }
 
 func (c *Controller) CreateShortLinkJSONBatch(ctx *gin.Context) {
-	token, err := c.getJWT(ctx)
-	if err != nil && !errors.Is(err, ErrNoJWT) {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": http.StatusText(http.StatusBadRequest)})
+	tokenValue, ok := ctx.Get(middlewares.Authorization)
+	if !ok {
+		ctx.String(http.StatusBadRequest, http.StatusText(http.StatusBadRequest))
 		return
 	}
-	err = c.setJWT(ctx, token)
-	if err != nil {
-		c.logger.Error("Can not set jwt", zap.Error(err))
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": http.StatusText(http.StatusInternalServerError)})
+	token, ok := tokenValue.(*middlewares.JWT)
+	if !ok {
+		ctx.String(http.StatusBadRequest, http.StatusText(http.StatusBadRequest))
 		return
 	}
 
@@ -235,13 +202,19 @@ func (c *Controller) PingDB(ctx *gin.Context) {
 }
 
 func (c *Controller) GetShortLinksOfUser(ctx *gin.Context) {
-	token, err := c.getJWT(ctx)
-	if err != nil {
-		if errors.Is(err, ErrNoJWT) {
-			ctx.JSON(http.StatusUnauthorized, gin.H{"error": http.StatusText(http.StatusUnauthorized)})
-			return
-		}
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": http.StatusText(http.StatusBadRequest)})
+	newToken := ctx.GetBool(middlewares.AuthorizationNew)
+	if newToken {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": http.StatusText(http.StatusUnauthorized)})
+		return
+	}
+	tokenValue, ok := ctx.Get(middlewares.Authorization)
+	if !ok {
+		ctx.String(http.StatusBadRequest, http.StatusText(http.StatusBadRequest))
+		return
+	}
+	token, ok := tokenValue.(*middlewares.JWT)
+	if !ok {
+		ctx.String(http.StatusBadRequest, http.StatusText(http.StatusBadRequest))
 		return
 	}
 
@@ -261,13 +234,19 @@ func (c *Controller) GetShortLinksOfUser(ctx *gin.Context) {
 }
 
 func (c *Controller) DeleteURLs(ctx *gin.Context) {
-	token, err := c.getJWT(ctx)
-	if err != nil {
-		if errors.Is(err, ErrNoJWT) {
-			ctx.JSON(http.StatusUnauthorized, gin.H{"error": http.StatusText(http.StatusUnauthorized)})
-			return
-		}
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": http.StatusText(http.StatusBadRequest)})
+	newToken := ctx.GetBool(middlewares.AuthorizationNew)
+	if newToken {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": http.StatusText(http.StatusUnauthorized)})
+		return
+	}
+	tokenValue, ok := ctx.Get(middlewares.Authorization)
+	if !ok {
+		ctx.String(http.StatusBadRequest, http.StatusText(http.StatusBadRequest))
+		return
+	}
+	token, ok := tokenValue.(*middlewares.JWT)
+	if !ok {
+		ctx.String(http.StatusBadRequest, http.StatusText(http.StatusBadRequest))
 		return
 	}
 

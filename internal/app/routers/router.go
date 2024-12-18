@@ -14,15 +14,20 @@ import (
 
 func NewRouter(
 	cfg *config.Config,
-	controller *controllers.Controller,
-	middleware middlewares.Middleware) (*gin.Engine, error) {
+	controller controllers.Controller,
+	middleware *middlewares.Middleware) (*gin.Engine, error) {
 	prefix, err := getURLPrefix(cfg)
 	if err != nil {
 		return nil, err
 	}
 
 	router := gin.New()
-	router.Use(gin.Recovery(), middleware.Logger(), middleware.Compressor())
+	router.Use(
+		gin.Recovery(),
+		middleware.Logger(),
+		middleware.Compressor(),
+		middleware.Auth(),
+	)
 
 	router.POST("/", controller.CreateShortLink)
 	router.POST("/api/shorten", controller.CreateShortLinkJSON)
