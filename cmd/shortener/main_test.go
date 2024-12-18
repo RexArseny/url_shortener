@@ -94,9 +94,19 @@ func TestCreateShortLink(t *testing.T) {
 				urlRepository = repository.NewLinks()
 			}
 
-			interactor := usecases.NewInteractor(cfg.BasicPath, urlRepository)
+			interactor := usecases.NewInteractor(
+				context.Background(),
+				testLogger.Named("interactor"),
+				cfg.BasicPath,
+				urlRepository,
+			)
 			conntroller := controllers.NewController(testLogger.Named("controller"), interactor)
-			middleware := middlewares.NewMiddleware(testLogger.Named("middleware"))
+			middleware, err := middlewares.NewMiddleware(
+				"../../public.pem",
+				"../../private.pem",
+				testLogger.Named("middleware"),
+			)
+			assert.NoError(t, err)
 			router, err := routers.NewRouter(&cfg, conntroller, middleware)
 			assert.NoError(t, err)
 
@@ -205,9 +215,19 @@ func TestCreateShortLinkJSON(t *testing.T) {
 				urlRepository = repository.NewLinks()
 			}
 
-			interactor := usecases.NewInteractor(cfg.BasicPath, urlRepository)
+			interactor := usecases.NewInteractor(
+				context.Background(),
+				testLogger.Named("interactor"),
+				cfg.BasicPath,
+				urlRepository,
+			)
 			conntroller := controllers.NewController(testLogger.Named("controller"), interactor)
-			middleware := middlewares.NewMiddleware(testLogger.Named("middleware"))
+			middleware, err := middlewares.NewMiddleware(
+				"../../public.pem",
+				"../../private.pem",
+				testLogger.Named("middleware"),
+			)
+			assert.NoError(t, err)
 			router, err := routers.NewRouter(&cfg, conntroller, middleware)
 			assert.NoError(t, err)
 
@@ -317,9 +337,19 @@ func TestGetShortLink(t *testing.T) {
 				urlRepository = repository.NewLinks()
 			}
 
-			interactor := usecases.NewInteractor(cfg.BasicPath, urlRepository)
+			interactor := usecases.NewInteractor(
+				context.Background(),
+				testLogger.Named("interactor"),
+				cfg.BasicPath,
+				urlRepository,
+			)
 			conntroller := controllers.NewController(testLogger.Named("controller"), interactor)
-			middleware := middlewares.NewMiddleware(testLogger.Named("middleware"))
+			middleware, err := middlewares.NewMiddleware(
+				"../../public.pem",
+				"../../private.pem",
+				testLogger.Named("middleware"),
+			)
+			assert.NoError(t, err)
 			router, err := routers.NewRouter(&cfg, conntroller, middleware)
 			assert.NoError(t, err)
 

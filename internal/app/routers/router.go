@@ -15,19 +15,26 @@ import (
 func NewRouter(
 	cfg *config.Config,
 	controller controllers.Controller,
-	middleware middlewares.Middleware) (*gin.Engine, error) {
+	middleware *middlewares.Middleware) (*gin.Engine, error) {
 	prefix, err := getURLPrefix(cfg)
 	if err != nil {
 		return nil, err
 	}
 
 	router := gin.New()
-	router.Use(gin.Recovery(), middleware.Logger(), middleware.Compressor())
+	router.Use(
+		gin.Recovery(),
+		middleware.Logger(),
+		middleware.Compressor(),
+		middleware.Auth(),
+	)
 
 	router.POST("/", controller.CreateShortLink)
 	router.POST("/api/shorten", controller.CreateShortLinkJSON)
 	router.POST("/api/shorten/batch", controller.CreateShortLinkJSONBatch)
 	router.GET(fmt.Sprintf("%s/:%s", *prefix, controllers.ID), controller.GetShortLink)
+	router.GET("/api/user/urls", controller.GetShortLinksOfUser)
+	router.DELETE("/api/user/urls", controller.DeleteURLs)
 	router.GET("/ping", controller.PingDB)
 
 	return router, nil
