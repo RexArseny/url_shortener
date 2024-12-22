@@ -11,15 +11,21 @@ import (
 )
 
 type Links struct {
-	m            *sync.Mutex
-	shortLinks   map[string]string
-	originalURLs map[string]ShortlURLInfo
+	m             *sync.Mutex
+	shortLinks    map[string]string
+	originalURLs  map[string]ShortlURLInfo
+	urlsForDelete []URLForDelete
 }
 
 type ShortlURLInfo struct {
 	originalURL string
 	userID      uuid.UUID
 	deleted     bool
+}
+
+type URLForDelete struct {
+	shortURLs []string
+	userID    uuid.UUID
 }
 
 func NewLinks() *Links {
@@ -141,15 +147,32 @@ func (l *Links) GetShortLinksOfUser(_ context.Context, userID uuid.UUID) ([]mode
 	return urls, nil
 }
 
-func (l *Links) DeleteURLs(_ context.Context, urls []string, userID uuid.UUID) error {
+func (l *Links) AddURLsForDelete(_ context.Context, urls []string, userID uuid.UUID) error {
 	l.m.Lock()
 	defer l.m.Unlock()
 
-	for _, shortURL := range urls {
+	l.urlsForDelete = append(l.urlsForDelete, URLForDelete{
+		shortURLs: urls,
+		userID:    userID,
+	})
+
+	return nil
+}
+
+func (l *Links) DeleteURLs(_ context.Context) error {
+	l.m.Lock()
+	defer l.m.Unlock()
+
+	if len(l.urlsForDelete) == 0 {
+		return nil
+	}
+
+	for _, shortURL := range l.urlsForDelete[0].shortURLs {
 		if shortlURLInfo, ok := l.originalURLs[shortURL]; ok {
-			if shortlURLInfo.userID == userID {
+			if shortlURLInfo.userID == l.urlsForDelete[0].userID {
 				shortlURLInfo.deleted = true
 				l.originalURLs[shortURL] = shortlURLInfo
+				l.urlsForDelete = l.urlsForDelete[1:]
 			}
 		}
 	}

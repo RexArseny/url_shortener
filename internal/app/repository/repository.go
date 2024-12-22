@@ -38,11 +38,12 @@ type Repository interface {
 		shortURLs [][]string,
 		userID uuid.UUID,
 	) ([]string, error)
-	DeleteURLs(
+	AddURLsForDelete(
 		ctx context.Context,
 		urls []string,
 		userID uuid.UUID,
 	) error
+	DeleteURLs(ctx context.Context) error
 	Ping(ctx context.Context) error
 }
 

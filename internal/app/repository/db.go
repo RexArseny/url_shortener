@@ -244,11 +244,52 @@ func (d *DBRepository) GetShortLinksOfUser(
 	return urls, nil
 }
 
-func (d *DBRepository) DeleteURLs(ctx context.Context, urls []string, userID uuid.UUID) error {
-	_, err := d.pool.Exec(ctx, `UPDATE urls SET deleted = true 
+func (d *DBRepository) AddURLsForDelete(ctx context.Context, urls []string, userID uuid.UUID) error {
+	_, err := d.pool.Exec(ctx, "INSERT INTO urls_for_delete (urls, user_id) VALUES ($1, $2)", urls, userID)
+	if err != nil {
+		return fmt.Errorf("can not add urls for delete: %w", err)
+	}
+
+	return nil
+}
+
+func (d *DBRepository) DeleteURLs(ctx context.Context) error {
+	tx, err := d.pool.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("can not start transaction: %w", err)
+	}
+	defer func() {
+		err = tx.Rollback(ctx)
+		if err != nil && !strings.Contains(err.Error(), "tx is closed") {
+			d.logger.Error("Can not rollback transaction", zap.Error(err))
+		}
+	}()
+
+	var id int
+	var urls []string
+	var userID uuid.UUID
+	err = tx.QueryRow(ctx, "SELECT id, urls, user_id FROM urls_for_delete LIMIT 1").Scan(&id, &urls, &userID)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil
+		}
+		return fmt.Errorf("can not get urls for delete: %w", err)
+	}
+
+	_, err = tx.Exec(ctx, `UPDATE urls SET deleted = true 
 								WHERE user_id = $1 AND short_url = ANY ($2)`, userID, urls)
 	if err != nil {
 		return fmt.Errorf("can not delete urls: %w", err)
+	}
+
+	_, err = tx.Exec(ctx, "DELETE FROM urls_for_delete WHERE id = $1", id)
+	if err != nil {
+		return fmt.Errorf("can not clear urls for delete: %w", err)
+	}
+
+	err = tx.Commit(ctx)
+	if err != nil {
+		return fmt.Errorf("can not commit transaction: %w", err)
 	}
 
 	return nil
