@@ -17,7 +17,7 @@ import (
 const (
 	shortLinkPathLength   = 8
 	linkGenerationRetries = 5
-	urlsDeleteTimer       = 1
+	urlsDeleteTimer       = 100
 )
 
 var letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
@@ -46,7 +46,7 @@ func NewInteractor(
 }
 
 func (i *Interactor) run(ctx context.Context) {
-	ticker := time.NewTicker(urlsDeleteTimer * time.Second)
+	ticker := time.NewTicker(urlsDeleteTimer * time.Millisecond)
 	for range ticker.C {
 		err := i.urlRepository.DeleteURLs(ctx)
 		if err != nil {
