@@ -184,20 +184,15 @@ func (l *LinksWithFile) SetLinks(
 	return result, nil
 }
 
-func (l *LinksWithFile) DeleteURLs(_ context.Context) error {
+func (l *LinksWithFile) DeleteURLs(_ context.Context, urls []string, userID uuid.UUID) error {
 	l.m.Lock()
 	defer l.m.Unlock()
 
-	if len(l.urlsForDelete) == 0 {
-		return nil
-	}
-
-	for _, shortURL := range l.urlsForDelete[0].shortURLs {
+	for _, shortURL := range urls {
 		if shortlURLInfo, ok := l.originalURLs[shortURL]; ok {
-			if shortlURLInfo.userID == l.urlsForDelete[0].userID {
+			if shortlURLInfo.userID == userID {
 				shortlURLInfo.deleted = true
 				l.originalURLs[shortURL] = shortlURLInfo
-				l.urlsForDelete = l.urlsForDelete[1:]
 			}
 		}
 	}

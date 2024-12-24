@@ -142,12 +142,11 @@ type JWT struct {
 
 func (m *Middleware) Auth() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		var claims *JWT
-		var authorizationNew bool
 		tokenString, err := ctx.Cookie(Authorization)
+
 		if err != nil || tokenString == "" {
 			userID := uuid.New()
-			claims = &JWT{
+			claims := &JWT{
 				RegisteredClaims: jwt.RegisteredClaims{
 					Issuer:    "url_shortener",
 					Subject:   userID.String(),
@@ -159,7 +158,6 @@ func (m *Middleware) Auth() gin.HandlerFunc {
 				},
 				UserID: userID,
 			}
-			authorizationNew = true
 
 			token := jwt.NewWithClaims(jwt.SigningMethodEdDSA, claims)
 
@@ -170,32 +168,47 @@ func (m *Middleware) Auth() gin.HandlerFunc {
 				ctx.Abort()
 				return
 			}
-		} else {
-			token, err := jwt.ParseWithClaims(
-				tokenString,
-				&JWT{},
-				func(token *jwt.Token) (interface{}, error) {
-					if token.Method != jwt.SigningMethodEdDSA {
-						return nil, errors.New("jwt signature mismatch")
-					}
-					return m.publicKey, nil
-				},
-			)
-			if err != nil {
-				m.logger.Error("Can not parse jwt", zap.Error(err))
-				ctx.JSON(http.StatusInternalServerError, gin.H{"error": http.StatusText(http.StatusInternalServerError)})
-				ctx.Abort()
-				return
-			}
 
-			var ok bool
-			claims, ok = token.Claims.(*JWT)
-			if !ok {
-				m.logger.Error("Token is not jwt format")
-				ctx.JSON(http.StatusInternalServerError, gin.H{"error": http.StatusText(http.StatusInternalServerError)})
-				ctx.Abort()
-				return
-			}
+			ctx.SetCookie(
+				Authorization,
+				tokenString,
+				maxAge,
+				"/",
+				"",
+				false,
+				false,
+			)
+			ctx.Set(Authorization, claims)
+			ctx.Set(AuthorizationNew, true)
+
+			ctx.Next()
+
+			return
+		}
+
+		token, err := jwt.ParseWithClaims(
+			tokenString,
+			&JWT{},
+			func(token *jwt.Token) (interface{}, error) {
+				if token.Method != jwt.SigningMethodEdDSA {
+					return nil, errors.New("jwt signature mismatch")
+				}
+				return m.publicKey, nil
+			},
+		)
+		if err != nil {
+			m.logger.Error("Can not parse jwt", zap.Error(err))
+			ctx.JSON(http.StatusInternalServerError, gin.H{"error": http.StatusText(http.StatusInternalServerError)})
+			ctx.Abort()
+			return
+		}
+
+		claims, ok := token.Claims.(*JWT)
+		if !ok {
+			m.logger.Error("Token is not jwt format")
+			ctx.JSON(http.StatusInternalServerError, gin.H{"error": http.StatusText(http.StatusInternalServerError)})
+			ctx.Abort()
+			return
 		}
 
 		ctx.SetCookie(
@@ -208,7 +221,7 @@ func (m *Middleware) Auth() gin.HandlerFunc {
 			false,
 		)
 		ctx.Set(Authorization, claims)
-		ctx.Set(AuthorizationNew, authorizationNew)
+		ctx.Set(AuthorizationNew, false)
 
 		ctx.Next()
 	}

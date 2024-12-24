@@ -244,7 +244,7 @@ func (d *DBRepository) GetShortLinksOfUser(
 	return urls, nil
 }
 
-func (d *DBRepository) AddURLsForDelete(ctx context.Context, urls []string, userID uuid.UUID) error {
+func (d *DBRepository) DeleteURLs(ctx context.Context, urls []string, userID uuid.UUID) error {
 	_, err := d.pool.Exec(ctx, "INSERT INTO urls_for_delete (urls, user_id) VALUES ($1, $2)", urls, userID)
 	if err != nil {
 		return fmt.Errorf("can not add urls for delete: %w", err)
@@ -253,7 +253,7 @@ func (d *DBRepository) AddURLsForDelete(ctx context.Context, urls []string, user
 	return nil
 }
 
-func (d *DBRepository) DeleteURLs(ctx context.Context) error {
+func (d *DBRepository) DeleteURLsInDB(ctx context.Context) error {
 	tx, err := d.pool.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("can not start transaction: %w", err)

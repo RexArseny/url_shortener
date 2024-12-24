@@ -147,32 +147,15 @@ func (l *Links) GetShortLinksOfUser(_ context.Context, userID uuid.UUID) ([]mode
 	return urls, nil
 }
 
-func (l *Links) AddURLsForDelete(_ context.Context, urls []string, userID uuid.UUID) error {
+func (l *Links) DeleteURLs(_ context.Context, urls []string, userID uuid.UUID) error {
 	l.m.Lock()
 	defer l.m.Unlock()
 
-	l.urlsForDelete = append(l.urlsForDelete, URLForDelete{
-		shortURLs: urls,
-		userID:    userID,
-	})
-
-	return nil
-}
-
-func (l *Links) DeleteURLs(_ context.Context) error {
-	l.m.Lock()
-	defer l.m.Unlock()
-
-	if len(l.urlsForDelete) == 0 {
-		return nil
-	}
-
-	for _, shortURL := range l.urlsForDelete[0].shortURLs {
+	for _, shortURL := range urls {
 		if shortlURLInfo, ok := l.originalURLs[shortURL]; ok {
-			if shortlURLInfo.userID == l.urlsForDelete[0].userID {
+			if shortlURLInfo.userID == userID {
 				shortlURLInfo.deleted = true
 				l.originalURLs[shortURL] = shortlURLInfo
-				l.urlsForDelete = l.urlsForDelete[1:]
 			}
 		}
 	}

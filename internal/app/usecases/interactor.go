@@ -40,15 +40,20 @@ func NewInteractor(
 		basicPath:     basicPath,
 	}
 
-	go interactor.run(ctx)
+	go interactor.runDeleteFromDB(ctx)
 
 	return interactor
 }
 
-func (i *Interactor) run(ctx context.Context) {
+func (i *Interactor) runDeleteFromDB(ctx context.Context) {
+	db, ok := i.urlRepository.(*repository.DBRepository)
+	if !ok {
+		return
+	}
+
 	ticker := time.NewTicker(urlsDeleteTimer * time.Millisecond)
 	for range ticker.C {
-		err := i.urlRepository.DeleteURLs(ctx)
+		err := db.DeleteURLsInDB(ctx)
 		if err != nil {
 			i.logger.Error("Can not delete urls", zap.Error(err))
 			return
@@ -161,7 +166,7 @@ func (i *Interactor) GetShortLinksOfUser(
 
 func (i *Interactor) DeleteURLs(ctx context.Context, urls []string, userID uuid.UUID) error {
 	go func() {
-		err := i.urlRepository.AddURLsForDelete(ctx, urls, userID)
+		err := i.urlRepository.DeleteURLs(ctx, urls, userID)
 		if err != nil {
 			i.logger.Error("can not get add urls for delete", zap.Error(err))
 		}
