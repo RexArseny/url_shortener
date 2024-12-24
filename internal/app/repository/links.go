@@ -11,21 +11,15 @@ import (
 )
 
 type Links struct {
-	m             *sync.Mutex
-	shortLinks    map[string]string
-	originalURLs  map[string]ShortlURLInfo
-	urlsForDelete []URLForDelete
+	m            *sync.Mutex
+	shortLinks   map[string]string
+	originalURLs map[string]ShortlURLInfo
 }
 
 type ShortlURLInfo struct {
 	originalURL string
 	userID      uuid.UUID
 	deleted     bool
-}
-
-type URLForDelete struct {
-	shortURLs []string
-	userID    uuid.UUID
 }
 
 func NewLinks() *Links {
