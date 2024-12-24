@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/RexArseny/url_shortener/internal/app/models"
+	"github.com/google/uuid"
 	"go.uber.org/zap"
 )
 
@@ -13,12 +14,35 @@ var (
 	ErrInvalidURL                  = errors.New("provided string is not valid url")
 	ErrOriginalURLUniqueViolation  = errors.New("original url unique violation")
 	ErrReachedMaxGenerationRetries = errors.New("reached max generation retries")
+	ErrURLIsDeleted                = errors.New("url is deleted")
 )
 
 type Repository interface {
-	GetOriginalURL(ctx context.Context, shortLink string) (*string, error)
-	SetLink(ctx context.Context, originalURL string, shortURLs []string) (*string, error)
-	SetLinks(ctx context.Context, batch []models.ShortenBatchRequest, shortURLs [][]string) ([]string, error)
+	GetOriginalURL(
+		ctx context.Context,
+		shortLink string,
+	) (*string, error)
+	GetShortLinksOfUser(
+		ctx context.Context,
+		userID uuid.UUID,
+	) ([]models.ShortenOfUserResponse, error)
+	SetLink(
+		ctx context.Context,
+		originalURL string,
+		shortURLs []string,
+		userID uuid.UUID,
+	) (*string, error)
+	SetLinks(
+		ctx context.Context,
+		batch []models.ShortenBatchRequest,
+		shortURLs [][]string,
+		userID uuid.UUID,
+	) ([]string, error)
+	DeleteURLs(
+		ctx context.Context,
+		urls []string,
+		userID uuid.UUID,
+	) error
 	Ping(ctx context.Context) error
 }
 

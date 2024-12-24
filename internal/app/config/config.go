@@ -11,6 +11,8 @@ const (
 	DefaultServerAddress   = "localhost:8080"
 	DefaultBasicPath       = "http://localhost:8080"
 	DefaultFileStoragePath = "shorturls.txt"
+	DefaultPublicKeyPath   = "public.pem"
+	DefaultPrivateKeyPath  = "private.pem"
 )
 
 type Config struct {
@@ -18,6 +20,8 @@ type Config struct {
 	BasicPath       string `env:"BASE_URL"`
 	FileStoragePath string `env:"FILE_STORAGE_PATH"`
 	DatabaseDSN     string `env:"DATABASE_DSN"`
+	PublicKeyPath   string `env:"PUBLIC_KEY_PATH"`
+	PrivateKeyPath  string `env:"PRIVATE_KEY_PATH"`
 }
 
 func Init() (*Config, error) {
@@ -27,6 +31,8 @@ func Init() (*Config, error) {
 	flag.StringVar(&cfg.BasicPath, "b", DefaultBasicPath, "basic path")
 	flag.StringVar(&cfg.FileStoragePath, "f", DefaultFileStoragePath, "file storage path")
 	flag.StringVar(&cfg.DatabaseDSN, "d", "", "database dsn")
+	flag.StringVar(&cfg.PublicKeyPath, "p", DefaultPublicKeyPath, "public key path")
+	flag.StringVar(&cfg.PrivateKeyPath, "s", DefaultPrivateKeyPath, "private key path")
 
 	flag.Parse()
 

@@ -11,6 +11,7 @@ import (
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
+	"github.com/google/uuid"
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -51,21 +52,31 @@ func NewDBRepository(ctx context.Context, logger *zap.Logger, connString string)
 
 func (d *DBRepository) GetOriginalURL(ctx context.Context, shortLink string) (*string, error) {
 	var originalURL string
-	err := d.pool.QueryRow(ctx, "SELECT original_url FROM urls WHERE short_url=$1", shortLink).Scan(&originalURL)
+	var deleted bool
+	err := d.pool.QueryRow(ctx, `SELECT original_url, deleted 
+								FROM urls WHERE short_url=$1`, shortLink).Scan(&originalURL, &deleted)
 	if err != nil {
 		return nil, fmt.Errorf("can not get original url: %w", err)
+	}
+	if deleted {
+		return nil, ErrURLIsDeleted
 	}
 	return &originalURL, nil
 }
 
-func (d *DBRepository) SetLink(ctx context.Context, originalURL string, shortURLs []string) (*string, error) {
+func (d *DBRepository) SetLink(
+	ctx context.Context,
+	originalURL string,
+	shortURLs []string,
+	userID uuid.UUID,
+) (*string, error) {
 	for _, shortURL := range shortURLs {
 		var link string
-		err := d.pool.QueryRow(ctx, `INSERT INTO urls (short_url, original_url) 
-									VALUES ($1, $2) 
+		err := d.pool.QueryRow(ctx, `INSERT INTO urls (short_url, original_url, user_id) 
+									VALUES ($1, $2, $3) 
 									ON CONFLICT (original_url) 
 									DO UPDATE SET original_url=EXCLUDED.original_url 
-									RETURNING short_url`, shortURL, originalURL).Scan(&link)
+									RETURNING short_url`, shortURL, originalURL, userID).Scan(&link)
 		if err != nil {
 			var pgErr *pgconn.PgError
 			if errors.As(err, &pgErr) &&
@@ -88,6 +99,7 @@ func (d *DBRepository) SetLinks(
 	ctx context.Context,
 	batch []models.ShortenBatchRequest,
 	shortURLs [][]string,
+	userID uuid.UUID,
 ) ([]string, error) {
 	urls := make(map[string]string)
 	originalURLs := make([]string, 0, len(batch))
@@ -147,10 +159,10 @@ func (d *DBRepository) SetLinks(
 				return nil, ErrInvalidURL
 			}
 
-			b.Queue(`INSERT INTO urls (short_url, original_url) 
-			VALUES ($1, $2) 
+			b.Queue(`INSERT INTO urls (short_url, original_url, user_id) 
+			VALUES ($1, $2, $3) 
 			ON CONFLICT (short_url) 
-			DO NOTHING`, shortURLs[j][i], originalURLs[j])
+			DO NOTHING`, shortURLs[j][i], originalURLs[j], userID)
 		}
 
 		br := tx.SendBatch(ctx, b)
@@ -196,6 +208,91 @@ func (d *DBRepository) SetLinks(
 	}
 
 	return nil, ErrReachedMaxGenerationRetries
+}
+
+func (d *DBRepository) GetShortLinksOfUser(
+	ctx context.Context,
+	userID uuid.UUID,
+) ([]models.ShortenOfUserResponse, error) {
+	rows, err := d.pool.Query(ctx, "SELECT short_url, original_url FROM urls WHERE user_id = $1", userID)
+	if err != nil {
+		return nil, fmt.Errorf("can not get urls of user: %w", err)
+	}
+	defer rows.Close()
+
+	var urls []models.ShortenOfUserResponse
+	for rows.Next() {
+		var shortURL string
+		var originalURL string
+		err = rows.Scan(
+			&shortURL,
+			&originalURL,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("can not read row: %w", err)
+		}
+
+		urls = append(urls, models.ShortenOfUserResponse{
+			ShortURL:    shortURL,
+			OriginalURL: originalURL,
+		})
+	}
+	if rows.Err() != nil {
+		return nil, fmt.Errorf("can not read rows: %w", err)
+	}
+
+	return urls, nil
+}
+
+func (d *DBRepository) DeleteURLs(ctx context.Context, urls []string, userID uuid.UUID) error {
+	_, err := d.pool.Exec(ctx, "INSERT INTO urls_for_delete (urls, user_id) VALUES ($1, $2)", urls, userID)
+	if err != nil {
+		return fmt.Errorf("can not add urls for delete: %w", err)
+	}
+
+	return nil
+}
+
+func (d *DBRepository) DeleteURLsInDB(ctx context.Context) error {
+	tx, err := d.pool.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("can not start transaction: %w", err)
+	}
+	defer func() {
+		err = tx.Rollback(ctx)
+		if err != nil && !strings.Contains(err.Error(), "tx is closed") {
+			d.logger.Error("Can not rollback transaction", zap.Error(err))
+		}
+	}()
+
+	var id int
+	var urls []string
+	var userID uuid.UUID
+	err = tx.QueryRow(ctx, "SELECT id, urls, user_id FROM urls_for_delete LIMIT 1").Scan(&id, &urls, &userID)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil
+		}
+		return fmt.Errorf("can not get urls for delete: %w", err)
+	}
+
+	_, err = tx.Exec(ctx, `UPDATE urls SET deleted = true 
+								WHERE user_id = $1 AND short_url = ANY ($2)`, userID, urls)
+	if err != nil {
+		return fmt.Errorf("can not delete urls: %w", err)
+	}
+
+	_, err = tx.Exec(ctx, "DELETE FROM urls_for_delete WHERE id = $1", id)
+	if err != nil {
+		return fmt.Errorf("can not clear urls for delete: %w", err)
+	}
+
+	err = tx.Commit(ctx)
+	if err != nil {
+		return fmt.Errorf("can not commit transaction: %w", err)
+	}
+
+	return nil
 }
 
 func (d *DBRepository) Ping(ctx context.Context) error {

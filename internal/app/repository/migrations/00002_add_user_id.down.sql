@@ -1,0 +1,5 @@
+START TRANSACTION;
+
+ALTER TABLE users RENAME COLUMN user_id TO __user_id;
+
+COMMIT;

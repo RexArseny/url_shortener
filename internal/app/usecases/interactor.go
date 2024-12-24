@@ -6,31 +6,66 @@ import (
 	"fmt"
 	"math/rand"
 	"net/url"
+	"time"
 
 	"github.com/RexArseny/url_shortener/internal/app/models"
 	"github.com/RexArseny/url_shortener/internal/app/repository"
+	"github.com/google/uuid"
+	"go.uber.org/zap"
 )
 
 const (
 	shortLinkPathLength   = 8
 	linkGenerationRetries = 5
+	urlsDeleteTimer       = 100
 )
 
 var letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
 
 type Interactor struct {
 	urlRepository repository.Repository
+	logger        *zap.Logger
 	basicPath     string
 }
 
-func NewInteractor(basicPath string, urlRepository repository.Repository) Interactor {
-	return Interactor{
+func NewInteractor(
+	ctx context.Context,
+	logger *zap.Logger,
+	basicPath string,
+	urlRepository repository.Repository,
+) Interactor {
+	interactor := Interactor{
+		logger:        logger,
 		urlRepository: urlRepository,
 		basicPath:     basicPath,
 	}
+
+	go interactor.runDeleteFromDB(ctx)
+
+	return interactor
 }
 
-func (i *Interactor) CreateShortLink(ctx context.Context, originalURL string) (*string, error) {
+func (i *Interactor) runDeleteFromDB(ctx context.Context) {
+	db, ok := i.urlRepository.(*repository.DBRepository)
+	if !ok {
+		return
+	}
+
+	ticker := time.NewTicker(urlsDeleteTimer * time.Millisecond)
+	for range ticker.C {
+		err := db.DeleteURLsInDB(ctx)
+		if err != nil {
+			i.logger.Error("Can not delete urls", zap.Error(err))
+			return
+		}
+	}
+}
+
+func (i *Interactor) CreateShortLink(
+	ctx context.Context,
+	originalURL string,
+	userID uuid.UUID,
+) (*string, error) {
 	_, err := url.ParseRequestURI(originalURL)
 	if err != nil {
 		return nil, repository.ErrInvalidURL
@@ -41,7 +76,7 @@ func (i *Interactor) CreateShortLink(ctx context.Context, originalURL string) (*
 		shortURLs = append(shortURLs, i.generatePath())
 	}
 
-	shortURL, err := i.urlRepository.SetLink(ctx, originalURL, shortURLs)
+	shortURL, err := i.urlRepository.SetLink(ctx, originalURL, shortURLs, userID)
 	if err != nil {
 		if errors.Is(err, repository.ErrOriginalURLUniqueViolation) && shortURL != nil {
 			path := i.formatURL(*shortURL)
@@ -59,6 +94,7 @@ func (i *Interactor) CreateShortLink(ctx context.Context, originalURL string) (*
 func (i *Interactor) CreateShortLinks(
 	ctx context.Context,
 	batch []models.ShortenBatchRequest,
+	userID uuid.UUID,
 ) ([]models.ShortenBatchResponse, error) {
 	shortURLs := make([][]string, 0, len(batch))
 	for range len(batch) {
@@ -69,7 +105,7 @@ func (i *Interactor) CreateShortLinks(
 		shortURLs = append(shortURLs, urls)
 	}
 
-	result, err := i.urlRepository.SetLinks(ctx, batch, shortURLs)
+	result, err := i.urlRepository.SetLinks(ctx, batch, shortURLs, userID)
 	if err != nil {
 		if errors.Is(err, repository.ErrOriginalURLUniqueViolation) && result != nil {
 			response := make([]models.ShortenBatchResponse, 0, len(result))
@@ -106,6 +142,37 @@ func (i *Interactor) GetShortLink(ctx context.Context, shortLink string) (*strin
 	}
 
 	return originalURL, nil
+}
+
+func (i *Interactor) GetShortLinksOfUser(
+	ctx context.Context,
+	userID uuid.UUID,
+) ([]models.ShortenOfUserResponse, error) {
+	urls, err := i.urlRepository.GetShortLinksOfUser(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("can not get urls of user: %w", err)
+	}
+
+	response := make([]models.ShortenOfUserResponse, 0, len(urls))
+	for j := range urls {
+		response = append(response, models.ShortenOfUserResponse{
+			ShortURL:    i.formatURL(urls[j].ShortURL),
+			OriginalURL: urls[j].OriginalURL,
+		})
+	}
+
+	return response, nil
+}
+
+func (i *Interactor) DeleteURLs(ctx context.Context, urls []string, userID uuid.UUID) error {
+	go func() {
+		err := i.urlRepository.DeleteURLs(ctx, urls, userID)
+		if err != nil {
+			i.logger.Error("can not get add urls for delete", zap.Error(err))
+		}
+	}()
+
+	return nil
 }
 
 func (i *Interactor) PingDB(ctx context.Context) error {
