@@ -98,7 +98,9 @@ func BenchmarkCreateShortLink(b *testing.B) {
 	)
 
 	for i := 0; i < b.N; i++ {
-		interactor.CreateShortLink(context.Background(), "", userID)
+		link, err := interactor.CreateShortLink(context.Background(), "", userID)
+		assert.NoError(b, err)
+		assert.NotEmpty(b, link)
 	}
 }
 
@@ -125,6 +127,8 @@ func BenchmarkGetShortLink(b *testing.B) {
 	assert.NotEmpty(b, parsedURL)
 
 	for i := 0; i < b.N; i++ {
-		interactor.GetShortLink(context.Background(), "")
+		result1, err := interactor.GetShortLink(context.Background(), "")
+		assert.Error(b, err)
+		assert.Nil(b, result1)
 	}
 }
