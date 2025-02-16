@@ -82,3 +82,49 @@ func TestGetShortLink(t *testing.T) {
 	assert.NotEmpty(t, result3)
 	assert.Equal(t, "https://ya.ru", *result3)
 }
+
+func BenchmarkCreateShortLink(b *testing.B) {
+	ctx := context.Background()
+
+	testLogger, err := logger.InitLogger()
+	assert.NoError(b, err)
+
+	userID := uuid.New()
+	interactor := NewInteractor(
+		ctx,
+		testLogger.Named("interactor"),
+		config.DefaultBasicPath,
+		repository.NewLinks(),
+	)
+
+	for i := 0; i < b.N; i++ {
+		interactor.CreateShortLink(context.Background(), "", userID)
+	}
+}
+
+func BenchmarkGetShortLink(b *testing.B) {
+	ctx := context.Background()
+
+	testLogger, err := logger.InitLogger()
+	assert.NoError(b, err)
+
+	userID := uuid.New()
+	interactor := NewInteractor(
+		ctx,
+		testLogger.Named("interactor"),
+		config.DefaultBasicPath,
+		repository.NewLinks(),
+	)
+
+	link, err := interactor.CreateShortLink(context.Background(), "https://ya.ru", userID)
+	assert.NoError(b, err)
+	assert.NotEmpty(b, link)
+
+	parsedURL, err := url.ParseRequestURI(*link)
+	assert.NoError(b, err)
+	assert.NotEmpty(b, parsedURL)
+
+	for i := 0; i < b.N; i++ {
+		interactor.GetShortLink(context.Background(), "")
+	}
+}
