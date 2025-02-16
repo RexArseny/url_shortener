@@ -11,6 +11,7 @@ import (
 	"github.com/RexArseny/url_shortener/internal/app/repository"
 	"github.com/RexArseny/url_shortener/internal/app/routers"
 	"github.com/RexArseny/url_shortener/internal/app/usecases"
+	"github.com/gin-contrib/pprof"
 	"go.uber.org/zap"
 )
 
@@ -34,6 +35,8 @@ func NewServer(
 	if err != nil {
 		return nil, fmt.Errorf("can not init router: %w", err)
 	}
+
+	pprof.Register(router)
 
 	return &http.Server{
 		Addr:    cfg.ServerAddress,
