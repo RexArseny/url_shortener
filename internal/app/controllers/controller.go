@@ -204,7 +204,7 @@ func (c *Controller) PingDB(ctx *gin.Context) {
 func (c *Controller) GetShortLinksOfUser(ctx *gin.Context) {
 	newToken := ctx.GetBool(middlewares.AuthorizationNew)
 	if newToken {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"error": http.StatusText(http.StatusUnauthorized)})
+		ctx.JSON(http.StatusNoContent, gin.H{"error": http.StatusText(http.StatusNoContent)})
 		return
 	}
 	tokenValue, ok := ctx.Get(middlewares.Authorization)
