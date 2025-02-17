@@ -11,29 +11,35 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+// Retry variables.
 const (
 	retry      = 3
 	connClosed = "conn closed"
 )
 
+// Pool is a wrapper for database Pool.
 type Pool struct {
 	*pgxpool.Pool
 }
 
+// Row is a wrapper for database Row.
 type Row struct {
 	pgx.Row
 	retry func() pgx.Row
 }
 
+// Tx is a wrapper for database Tx.
 type Tx struct {
 	pgx.Tx
 }
 
+// BatchResults is a wrapper for database BatchResults.
 type BatchResults struct {
 	pgx.BatchResults
 	retry func() pgx.BatchResults
 }
 
+// NewPool create new pool.
 func NewPool(ctx context.Context, connString string) (*Pool, error) {
 	pool, err := pgxpool.New(ctx, connString)
 	if err != nil {
@@ -44,6 +50,7 @@ func NewPool(ctx context.Context, connString string) (*Pool, error) {
 	}, nil
 }
 
+// Scan is a wrapper for database Scan.
 func (r *Row) Scan(dest ...any) error {
 	var err error
 	for range retry {
@@ -60,6 +67,7 @@ func (r *Row) Scan(dest ...any) error {
 	return err
 }
 
+// QueryRow is a wrapper for database QueryRow.
 func (p *Pool) QueryRow(ctx context.Context, sql string, args ...any) pgx.Row {
 	row := p.Pool.QueryRow(ctx, sql, args...)
 	return &Row{
@@ -70,6 +78,7 @@ func (p *Pool) QueryRow(ctx context.Context, sql string, args ...any) pgx.Row {
 	}
 }
 
+// Begin is a wrapper for database Begin.
 func (p *Pool) Begin(ctx context.Context) (pgx.Tx, error) {
 	var err error
 	for range retry {
@@ -88,6 +97,7 @@ func (p *Pool) Begin(ctx context.Context) (pgx.Tx, error) {
 	return nil, err
 }
 
+// Query is a wrapper for database Query.
 func (t *Tx) Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error) {
 	var err error
 	for range retry {
@@ -104,6 +114,7 @@ func (t *Tx) Query(ctx context.Context, sql string, args ...any) (pgx.Rows, erro
 	return nil, err
 }
 
+// SendBatch is a wrapper for database SendBatch.
 func (t *Tx) SendBatch(ctx context.Context, b *pgx.Batch) pgx.BatchResults {
 	batchResults := t.Tx.SendBatch(ctx, b)
 	return &BatchResults{
@@ -114,6 +125,7 @@ func (t *Tx) SendBatch(ctx context.Context, b *pgx.Batch) pgx.BatchResults {
 	}
 }
 
+// Commit is a wrapper for database Commit.
 func (t *Tx) Commit(ctx context.Context) error {
 	var err error
 	for range retry {
@@ -129,6 +141,7 @@ func (t *Tx) Commit(ctx context.Context) error {
 	return err
 }
 
+// Exec is a wrapper for database Exec.
 func (b *BatchResults) Exec() (pgconn.CommandTag, error) {
 	var err error
 	for range retry {
@@ -146,6 +159,7 @@ func (b *BatchResults) Exec() (pgconn.CommandTag, error) {
 	return pgconn.CommandTag{}, err
 }
 
+// Ping is a wrapper for database Ping.
 func (p *Pool) Ping(ctx context.Context) error {
 	var err error
 	for range retry {

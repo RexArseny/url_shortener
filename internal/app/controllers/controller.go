@@ -14,7 +14,7 @@ import (
 	"go.uber.org/zap"
 )
 
-// Name of ID URL parameter.
+// ID is name of URL parameter.
 const ID = "id"
 
 // Controller is responsible for managing the network interactions of the service.

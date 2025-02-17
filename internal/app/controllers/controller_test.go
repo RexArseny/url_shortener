@@ -1,3 +1,4 @@
+//nolint:dupl // tests of handlers
 package controllers
 
 import (
@@ -482,7 +483,7 @@ func TestGetShortLinksOfUser(t *testing.T) {
 
 			w := httptest.NewRecorder()
 			ctx, _ := gin.CreateTestContext(w)
-			ctx.Request = httptest.NewRequest(http.MethodGet, "/api/user/urls", nil)
+			ctx.Request = httptest.NewRequest(http.MethodGet, "/api/user/urls", http.NoBody)
 			ctx.Request.AddCookie(&http.Cookie{
 				Name:   middlewares.Authorization,
 				Value:  tokenString,
@@ -502,6 +503,9 @@ func TestGetShortLinksOfUser(t *testing.T) {
 			conntroller.GetShortLinksOfUser(ctx)
 
 			result := w.Result()
+
+			err = result.Body.Close()
+			assert.NoError(t, err)
 
 			assert.Equal(t, http.StatusNoContent, result.StatusCode)
 		})
@@ -579,6 +583,9 @@ func TestDeleteURLs(t *testing.T) {
 			conntroller.DeleteURLs(ctx)
 
 			result := w.Result()
+
+			err = result.Body.Close()
+			assert.NoError(t, err)
 
 			assert.Equal(t, tt.want, result.StatusCode)
 		})

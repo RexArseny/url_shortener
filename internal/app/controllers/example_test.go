@@ -51,6 +51,11 @@ func ExampleController_CreateShortLink() {
 
 	result := w.Result()
 
+	err = result.Body.Close()
+	if err != nil {
+		log.Fatalf("can not close body: %s", err)
+	}
+
 	fmt.Println(result.StatusCode)
 
 	// Output:
@@ -91,6 +96,11 @@ func ExampleController_CreateShortLinkJSON() {
 	conntroller.CreateShortLinkJSON(ctx)
 
 	result := w.Result()
+
+	err = result.Body.Close()
+	if err != nil {
+		log.Fatalf("can not close body: %s", err)
+	}
 
 	fmt.Println(result.StatusCode)
 
