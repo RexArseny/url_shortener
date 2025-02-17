@@ -1,3 +1,4 @@
+//nolint:dupl // example of handlers
 package controllers
 
 import (

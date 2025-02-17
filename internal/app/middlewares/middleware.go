@@ -23,7 +23,7 @@ const (
 	maxAge           = 900
 )
 
-// Error which is used in case if JWT is not presented in cookie.
+// ErrNoJWT is used in case if JWT is not presented in cookie.
 var ErrNoJWT = errors.New("no jwt in cookie")
 
 // Middleware processes requests before and after execution by the handler.
