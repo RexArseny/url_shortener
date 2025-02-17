@@ -192,6 +192,23 @@ func TestDeleteURLs(t *testing.T) {
 	assert.Nil(t, result1)
 }
 
+func TestPingDB(t *testing.T) {
+	ctx := context.Background()
+
+	testLogger, err := logger.InitLogger()
+	assert.NoError(t, err)
+
+	interactor := NewInteractor(
+		ctx,
+		testLogger.Named("interactor"),
+		config.DefaultBasicPath,
+		repository.NewLinks(),
+	)
+
+	err = interactor.PingDB(context.Background())
+	assert.Error(t, err)
+}
+
 func BenchmarkCreateShortLink(b *testing.B) {
 	ctx := context.Background()
 

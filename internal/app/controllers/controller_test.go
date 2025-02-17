@@ -72,11 +72,15 @@ func TestCreateShortLink(t *testing.T) {
 			}
 			testLogger, err := logger.InitLogger()
 			assert.NoError(t, err)
+			file, err := os.CreateTemp("./", "*.test")
+			assert.NoError(t, err)
+			urlRepository, err := repository.NewLinksWithFile(file.Name())
+			assert.NoError(t, err)
 			interactor := usecases.NewInteractor(
 				context.Background(),
 				testLogger.Named("interactor"),
 				cfg.BasicPath,
-				repository.NewLinks(),
+				urlRepository,
 			)
 			conntroller := NewController(testLogger.Named("controller"), interactor)
 
@@ -434,6 +438,57 @@ func TestGetShortLink(t *testing.T) {
 	}
 }
 
+func TestPingDB(t *testing.T) {
+	tests := []struct {
+		name string
+		want int
+	}{
+		{
+			name: "valid data",
+			want: http.StatusInternalServerError,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := config.Config{
+				BasicPath: config.DefaultBasicPath,
+			}
+			testLogger, err := logger.InitLogger()
+			assert.NoError(t, err)
+			interactor := usecases.NewInteractor(
+				context.Background(),
+				testLogger.Named("interactor"),
+				cfg.BasicPath,
+				repository.NewLinks(),
+			)
+			conntroller := NewController(testLogger.Named("controller"), interactor)
+
+			w := httptest.NewRecorder()
+			ctx, _ := gin.CreateTestContext(w)
+			ctx.Request = httptest.NewRequest(http.MethodGet, "/ping", http.NoBody)
+
+			middleware, err := middlewares.NewMiddleware(
+				"../../../public.pem",
+				"../../../private.pem",
+				testLogger.Named("middleware"),
+			)
+			assert.NoError(t, err)
+			auth := middleware.Auth()
+			auth(ctx)
+
+			conntroller.PingDB(ctx)
+
+			result := w.Result()
+
+			err = result.Body.Close()
+			assert.NoError(t, err)
+
+			assert.Equal(t, tt.want, result.StatusCode)
+		})
+	}
+}
+
 func TestGetShortLinksOfUser(t *testing.T) {
 	tests := []struct {
 		name string
@@ -507,7 +562,7 @@ func TestGetShortLinksOfUser(t *testing.T) {
 			err = result.Body.Close()
 			assert.NoError(t, err)
 
-			assert.Equal(t, http.StatusNoContent, result.StatusCode)
+			assert.Equal(t, tt.want, result.StatusCode)
 		})
 	}
 }
@@ -515,11 +570,19 @@ func TestGetShortLinksOfUser(t *testing.T) {
 func TestDeleteURLs(t *testing.T) {
 	tests := []struct {
 		name    string
+		file    bool
 		request string
 		want    int
 	}{
 		{
-			name:    "valid url",
+			name:    "valid url in memory",
+			file:    false,
+			request: `["1"]`,
+			want:    http.StatusAccepted,
+		},
+		{
+			name:    "valid url in file",
+			file:    true,
 			request: `["1"]`,
 			want:    http.StatusAccepted,
 		},
@@ -532,11 +595,22 @@ func TestDeleteURLs(t *testing.T) {
 			}
 			testLogger, err := logger.InitLogger()
 			assert.NoError(t, err)
+
+			var urlRepository repository.Repository
+			if tt.file {
+				file, err := os.CreateTemp("./", "*.test")
+				assert.NoError(t, err)
+				urlRepository, err = repository.NewLinksWithFile(file.Name())
+				assert.NoError(t, err)
+			} else {
+				urlRepository = repository.NewLinks()
+			}
+
 			interactor := usecases.NewInteractor(
 				context.Background(),
 				testLogger.Named("interactor"),
 				cfg.BasicPath,
-				repository.NewLinks(),
+				urlRepository,
 			)
 			conntroller := NewController(testLogger.Named("controller"), interactor)
 
@@ -563,13 +637,10 @@ func TestDeleteURLs(t *testing.T) {
 
 			w := httptest.NewRecorder()
 			ctx, _ := gin.CreateTestContext(w)
-			ctx.Request = httptest.NewRequest(http.MethodDelete, "/api/user/urls", strings.NewReader(tt.request))
-			ctx.Request.AddCookie(&http.Cookie{
-				Name:   middlewares.Authorization,
-				Value:  tokenString,
-				Path:   "/",
-				Domain: "",
-			})
+			ctx.Request = httptest.NewRequest(
+				http.MethodPost,
+				"/api/shorten/batch",
+				strings.NewReader(`[{"correlation_id":"1","original_url":"https://ya.ru"}]`))
 
 			middleware, err := middlewares.NewMiddleware(
 				"../../../public.pem",
@@ -578,6 +649,20 @@ func TestDeleteURLs(t *testing.T) {
 			)
 			assert.NoError(t, err)
 			auth := middleware.Auth()
+			auth(ctx)
+
+			conntroller.CreateShortLinkJSONBatch(ctx)
+
+			w = httptest.NewRecorder()
+			ctx, _ = gin.CreateTestContext(w)
+			ctx.Request = httptest.NewRequest(http.MethodDelete, "/api/user/urls", strings.NewReader(tt.request))
+			ctx.Request.AddCookie(&http.Cookie{
+				Name:   middlewares.Authorization,
+				Value:  tokenString,
+				Path:   "/",
+				Domain: "",
+			})
+
 			auth(ctx)
 
 			conntroller.DeleteURLs(ctx)
