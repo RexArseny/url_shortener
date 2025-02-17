@@ -18,11 +18,13 @@ import (
 	"go.uber.org/zap"
 )
 
+// DBRepository is a repository which stores data in database.
 type DBRepository struct {
 	logger *zap.Logger
 	pool   *Pool
 }
 
+// NewDBRepository create new DBRepository.
 func NewDBRepository(ctx context.Context, logger *zap.Logger, connString string) (*DBRepository, error) {
 	m, err := migrate.New("file://./internal/app/repository/migrations", connString)
 	if err != nil {
@@ -50,6 +52,7 @@ func NewDBRepository(ctx context.Context, logger *zap.Logger, connString string)
 	}, nil
 }
 
+// GetOriginalURL return original URL by short URL.
 func (d *DBRepository) GetOriginalURL(ctx context.Context, shortLink string) (*string, error) {
 	var originalURL string
 	var deleted bool
@@ -64,6 +67,7 @@ func (d *DBRepository) GetOriginalURL(ctx context.Context, shortLink string) (*s
 	return &originalURL, nil
 }
 
+// SetLink add short URL if such does not exist already.
 func (d *DBRepository) SetLink(
 	ctx context.Context,
 	originalURL string,
@@ -95,6 +99,7 @@ func (d *DBRepository) SetLink(
 	return nil, ErrReachedMaxGenerationRetries
 }
 
+// SetLinks add short URLs if such do not exist already.
 func (d *DBRepository) SetLinks(
 	ctx context.Context,
 	batch []models.ShortenBatchRequest,
@@ -210,6 +215,7 @@ func (d *DBRepository) SetLinks(
 	return nil, ErrReachedMaxGenerationRetries
 }
 
+// GetShortLinksOfUser return URLs of user if such exist.
 func (d *DBRepository) GetShortLinksOfUser(
 	ctx context.Context,
 	userID uuid.UUID,
@@ -244,6 +250,7 @@ func (d *DBRepository) GetShortLinksOfUser(
 	return urls, nil
 }
 
+// DeleteURLs add URLs to deletion queue.
 func (d *DBRepository) DeleteURLs(ctx context.Context, urls []string, userID uuid.UUID) error {
 	_, err := d.pool.Exec(ctx, "INSERT INTO urls_for_delete (urls, user_id) VALUES ($1, $2)", urls, userID)
 	if err != nil {
@@ -253,6 +260,7 @@ func (d *DBRepository) DeleteURLs(ctx context.Context, urls []string, userID uui
 	return nil
 }
 
+// DeleteURLsInDB get and delete URLs from deletion queue.
 func (d *DBRepository) DeleteURLsInDB(ctx context.Context) error {
 	tx, err := d.pool.Begin(ctx)
 	if err != nil {
@@ -295,6 +303,7 @@ func (d *DBRepository) DeleteURLsInDB(ctx context.Context) error {
 	return nil
 }
 
+// Ping check connection with database.
 func (d *DBRepository) Ping(ctx context.Context) error {
 	err := d.pool.Ping(ctx)
 	if err != nil {
@@ -303,6 +312,7 @@ func (d *DBRepository) Ping(ctx context.Context) error {
 	return nil
 }
 
+// Close all connections with database.
 func (d *DBRepository) Close() {
 	d.pool.Close()
 }

@@ -8,6 +8,7 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
+// InitLogger create logger for service.
 func InitLogger() (*zap.Logger, error) {
 	config := zap.NewProductionConfig()
 

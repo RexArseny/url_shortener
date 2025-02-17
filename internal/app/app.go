@@ -15,6 +15,7 @@ import (
 	"go.uber.org/zap"
 )
 
+// NewServer create new server with new interactor, controller, middleware and router.
 func NewServer(
 	ctx context.Context,
 	logger *zap.Logger,

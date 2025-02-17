@@ -10,6 +10,7 @@ import (
 	"go.uber.org/zap"
 )
 
+// Errors in working with data.
 var (
 	ErrInvalidURL                  = errors.New("provided string is not valid url")
 	ErrOriginalURLUniqueViolation  = errors.New("original url unique violation")
@@ -17,6 +18,7 @@ var (
 	ErrURLIsDeleted                = errors.New("url is deleted")
 )
 
+// Repository is an interface of repositories which store URLs data.
 type Repository interface {
 	GetOriginalURL(
 		ctx context.Context,
@@ -46,11 +48,13 @@ type Repository interface {
 	Ping(ctx context.Context) error
 }
 
+// Batch is a model for bates of URLs.
 type Batch struct {
 	OriginalURL string
 	ShortURL    string
 }
 
+// NewRepository creates new repository of type which depends on configuration.
 func NewRepository(
 	ctx context.Context,
 	logger *zap.Logger,
