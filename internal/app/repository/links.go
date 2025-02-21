@@ -10,18 +10,21 @@ import (
 	"github.com/google/uuid"
 )
 
+// Links is a repository which stores data in memory.
 type Links struct {
 	m            *sync.Mutex
 	shortLinks   map[string]string
 	originalURLs map[string]ShortlURLInfo
 }
 
+// ShortlURLInfo is a model of URLs which stored in memory.
 type ShortlURLInfo struct {
 	originalURL string
 	userID      uuid.UUID
 	deleted     bool
 }
 
+// NewLinks create new Links.
 func NewLinks() *Links {
 	return &Links{
 		m:            &sync.Mutex{},
@@ -30,6 +33,7 @@ func NewLinks() *Links {
 	}
 }
 
+// GetOriginalURL return original URL by short URL.
 func (l *Links) GetOriginalURL(_ context.Context, shortLink string) (*string, error) {
 	l.m.Lock()
 	defer l.m.Unlock()
@@ -43,6 +47,7 @@ func (l *Links) GetOriginalURL(_ context.Context, shortLink string) (*string, er
 	return &originalURL.originalURL, nil
 }
 
+// SetLink add short URL if such does not exist already.
 func (l *Links) SetLink(
 	_ context.Context,
 	originalURL string,
@@ -71,6 +76,7 @@ func (l *Links) SetLink(
 	return nil, ErrReachedMaxGenerationRetries
 }
 
+// SetLinks add short URLs if such do not exist already.
 func (l *Links) SetLinks(
 	_ context.Context,
 	batch []models.ShortenBatchRequest,
@@ -124,6 +130,7 @@ func (l *Links) SetLinks(
 	return result, nil
 }
 
+// GetShortLinksOfUser return URLs of user if such exist.
 func (l *Links) GetShortLinksOfUser(_ context.Context, userID uuid.UUID) ([]models.ShortenOfUserResponse, error) {
 	l.m.Lock()
 	defer l.m.Unlock()
@@ -141,6 +148,7 @@ func (l *Links) GetShortLinksOfUser(_ context.Context, userID uuid.UUID) ([]mode
 	return urls, nil
 }
 
+// DeleteURLs delete URLs.
 func (l *Links) DeleteURLs(_ context.Context, urls []string, userID uuid.UUID) error {
 	l.m.Lock()
 	defer l.m.Unlock()
@@ -157,6 +165,7 @@ func (l *Links) DeleteURLs(_ context.Context, urls []string, userID uuid.UUID) e
 	return nil
 }
 
+// Ping return info about connection.
 func (l *Links) Ping(_ context.Context) error {
 	return errors.New("service in memory storage mode")
 }

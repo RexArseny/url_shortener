@@ -16,20 +16,24 @@ import (
 	"go.uber.org/zap"
 )
 
+// Names of JWT flag constants.
 const (
 	Authorization    = "Authorization"
 	AuthorizationNew = "AuthorizationNew"
 	maxAge           = 900
 )
 
+// ErrNoJWT is used in case if JWT is not presented in cookie.
 var ErrNoJWT = errors.New("no jwt in cookie")
 
+// Middleware processes requests before and after execution by the handler.
 type Middleware struct {
 	publicKey  crypto.PublicKey
 	privateKey crypto.PrivateKey
 	logger     *zap.Logger
 }
 
+// NewMiddleware create new Middleware.
 func NewMiddleware(publicKeyPath string, privateKeyPath string, logger *zap.Logger) (*Middleware, error) {
 	publicKeyFile, err := os.ReadFile(publicKeyPath)
 	if err != nil {
@@ -56,6 +60,7 @@ func NewMiddleware(publicKeyPath string, privateKeyPath string, logger *zap.Logg
 	}, nil
 }
 
+// Logger logs information about incoming request.
 func (m *Middleware) Logger() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		start := time.Now()
@@ -77,11 +82,13 @@ func (m *Middleware) Logger() gin.HandlerFunc {
 	}
 }
 
+// gzipWriter is a wrapper for gin.ResponseWriter to add an option of compression.
 type gzipWriter struct {
 	gin.ResponseWriter
 	writer *gzip.Writer
 }
 
+// WriteString write string into writer.
 func (g *gzipWriter) WriteString(s string) (int, error) {
 	n, err := g.writer.Write([]byte(s))
 	if err != nil {
@@ -90,6 +97,7 @@ func (g *gzipWriter) WriteString(s string) (int, error) {
 	return n, nil
 }
 
+// Write write bytes into writer.
 func (g *gzipWriter) Write(data []byte) (int, error) {
 	n, err := g.writer.Write(data)
 	if err != nil {
@@ -98,6 +106,7 @@ func (g *gzipWriter) Write(data []byte) (int, error) {
 	return n, nil
 }
 
+// Compressor decompress request body and compress response body if needed.
 func (m *Middleware) Compressor() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		if ctx.GetHeader("Content-Encoding") == "gzip" {
@@ -135,11 +144,13 @@ func (m *Middleware) Compressor() gin.HandlerFunc {
 	}
 }
 
+// JWT is a structure of claims.
 type JWT struct {
 	jwt.RegisteredClaims
 	UserID uuid.UUID `json:"user_id"`
 }
 
+// Auth extract JWT from cookie if it is presented and generate new one if it is not presented.
 func (m *Middleware) Auth() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		tokenString, err := ctx.Cookie(Authorization)

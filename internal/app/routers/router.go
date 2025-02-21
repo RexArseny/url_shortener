@@ -12,6 +12,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// NewRouter creates new router.
 func NewRouter(
 	cfg *config.Config,
 	controller controllers.Controller,
@@ -40,6 +41,7 @@ func NewRouter(
 	return router, nil
 }
 
+// getURLPrefix returns formated prefix for short URL path.
 func getURLPrefix(cfg *config.Config) (*string, error) {
 	serverAddress, err := url.ParseRequestURI(cfg.ServerAddress)
 	if err != nil {

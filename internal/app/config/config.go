@@ -7,6 +7,7 @@ import (
 	env "github.com/caarlos0/env/v11"
 )
 
+// Default Config values.
 const (
 	DefaultServerAddress   = "localhost:8080"
 	DefaultBasicPath       = "http://localhost:8080"
@@ -15,6 +16,7 @@ const (
 	DefaultPrivateKeyPath  = "private.pem"
 )
 
+// Config is a set of service configurable variables.
 type Config struct {
 	ServerAddress   string `env:"SERVER_ADDRESS"`
 	BasicPath       string `env:"BASE_URL"`
@@ -24,6 +26,7 @@ type Config struct {
 	PrivateKeyPath  string `env:"PRIVATE_KEY_PATH"`
 }
 
+// Init parse values for Config from environment and flags.
 func Init() (*Config, error) {
 	var cfg Config
 

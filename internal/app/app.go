@@ -11,9 +11,11 @@ import (
 	"github.com/RexArseny/url_shortener/internal/app/repository"
 	"github.com/RexArseny/url_shortener/internal/app/routers"
 	"github.com/RexArseny/url_shortener/internal/app/usecases"
+	"github.com/gin-contrib/pprof"
 	"go.uber.org/zap"
 )
 
+// NewServer create new server with new interactor, controller, middleware and router.
 func NewServer(
 	ctx context.Context,
 	logger *zap.Logger,
@@ -34,6 +36,8 @@ func NewServer(
 	if err != nil {
 		return nil, fmt.Errorf("can not init router: %w", err)
 	}
+
+	pprof.Register(router)
 
 	return &http.Server{
 		Addr:    cfg.ServerAddress,

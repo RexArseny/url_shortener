@@ -14,20 +14,24 @@ import (
 	"go.uber.org/zap"
 )
 
+// Variables of short URLs.
 const (
 	shortLinkPathLength   = 8
 	linkGenerationRetries = 5
 	urlsDeleteTimer       = 100
 )
 
+// Letters which are used for new short URL generation.
 var letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
 
+// Interactor is responsible for managing the logic of the service.
 type Interactor struct {
 	urlRepository repository.Repository
 	logger        *zap.Logger
 	basicPath     string
 }
 
+// NewInteractor create new Interactor.
 func NewInteractor(
 	ctx context.Context,
 	logger *zap.Logger,
@@ -45,6 +49,7 @@ func NewInteractor(
 	return interactor
 }
 
+// runDeleteFromDB is a runner that execute URLs deletyeion from URL deletion queue.
 func (i *Interactor) runDeleteFromDB(ctx context.Context) {
 	db, ok := i.urlRepository.(*repository.DBRepository)
 	if !ok {
@@ -61,6 +66,7 @@ func (i *Interactor) runDeleteFromDB(ctx context.Context) {
 	}
 }
 
+// CreateShortLink create new short URL from original URL.
 func (i *Interactor) CreateShortLink(
 	ctx context.Context,
 	originalURL string,
@@ -91,6 +97,7 @@ func (i *Interactor) CreateShortLink(
 	return &path, nil
 }
 
+// CreateShortLinks create new short URLs from original URLs.
 func (i *Interactor) CreateShortLinks(
 	ctx context.Context,
 	batch []models.ShortenBatchRequest,
@@ -135,6 +142,7 @@ func (i *Interactor) CreateShortLinks(
 	return response, nil
 }
 
+// GetShortLink return original URL from short URL.
 func (i *Interactor) GetShortLink(ctx context.Context, shortLink string) (*string, error) {
 	originalURL, err := i.urlRepository.GetOriginalURL(ctx, shortLink)
 	if err != nil {
@@ -144,6 +152,7 @@ func (i *Interactor) GetShortLink(ctx context.Context, shortLink string) (*strin
 	return originalURL, nil
 }
 
+// GetShortLinksOfUser return all short and original URLs of user if such exist.
 func (i *Interactor) GetShortLinksOfUser(
 	ctx context.Context,
 	userID uuid.UUID,
@@ -164,6 +173,7 @@ func (i *Interactor) GetShortLinksOfUser(
 	return response, nil
 }
 
+// DeleteURLs delete short URLs of user if such exist.
 func (i *Interactor) DeleteURLs(ctx context.Context, urls []string, userID uuid.UUID) error {
 	go func() {
 		err := i.urlRepository.DeleteURLs(ctx, urls, userID)
@@ -175,6 +185,7 @@ func (i *Interactor) DeleteURLs(ctx context.Context, urls []string, userID uuid.
 	return nil
 }
 
+// PingDB check the connection with database.
 func (i *Interactor) PingDB(ctx context.Context) error {
 	err := i.urlRepository.Ping(ctx)
 	if err != nil {
@@ -184,6 +195,7 @@ func (i *Interactor) PingDB(ctx context.Context) error {
 	return nil
 }
 
+// generatePath create new short URL.
 func (i *Interactor) generatePath() string {
 	path := make([]rune, shortLinkPathLength)
 	for j := range path {
@@ -192,6 +204,7 @@ func (i *Interactor) generatePath() string {
 	return string(path)
 }
 
+// formatURL format short URL into short path.
 func (i *Interactor) formatURL(shortURL string) string {
 	return fmt.Sprintf("%s/%s", i.basicPath, shortURL)
 }

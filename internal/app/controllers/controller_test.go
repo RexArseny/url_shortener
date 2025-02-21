@@ -1,3 +1,4 @@
+//nolint:dupl // tests of handlers
 package controllers
 
 import (
@@ -7,9 +8,11 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"os"
 	"path"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/RexArseny/url_shortener/internal/app/config"
 	"github.com/RexArseny/url_shortener/internal/app/logger"
@@ -17,6 +20,8 @@ import (
 	"github.com/RexArseny/url_shortener/internal/app/repository"
 	"github.com/RexArseny/url_shortener/internal/app/usecases"
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -67,11 +72,15 @@ func TestCreateShortLink(t *testing.T) {
 			}
 			testLogger, err := logger.InitLogger()
 			assert.NoError(t, err)
+			file, err := os.CreateTemp("./", "*.test")
+			assert.NoError(t, err)
+			urlRepository, err := repository.NewLinksWithFile(file.Name())
+			assert.NoError(t, err)
 			interactor := usecases.NewInteractor(
 				context.Background(),
 				testLogger.Named("interactor"),
 				cfg.BasicPath,
-				repository.NewLinks(),
+				urlRepository,
 			)
 			conntroller := NewController(testLogger.Named("controller"), interactor)
 
@@ -210,6 +219,102 @@ func TestCreateShortLinkJSON(t *testing.T) {
 	}
 }
 
+func TestCreateShortLinkJSONBatch(t *testing.T) {
+	type want struct {
+		response    map[string]interface{}
+		contenType  string
+		stastusCode int
+	}
+	tests := []struct {
+		name    string
+		request string
+		want    want
+	}{
+		{
+			name:    "nil body",
+			request: "",
+			want: want{
+				stastusCode: http.StatusBadRequest,
+				contenType:  "application/json; charset=utf-8",
+				response:    map[string]interface{}{"error": "Bad Request"},
+			},
+		},
+		{
+			name:    "empty body",
+			request: `[{}]`,
+			want: want{
+				stastusCode: http.StatusBadRequest,
+				contenType:  "application/json; charset=utf-8",
+				response:    map[string]interface{}{"error": "Bad Request"},
+			},
+		},
+		{
+			name:    "invalid url",
+			request: `[{"correlation_id":"1","original_url":"abc"}]`,
+			want: want{
+				stastusCode: http.StatusBadRequest,
+				contenType:  "application/json; charset=utf-8",
+				response:    map[string]interface{}{"error": "Bad Request"},
+			},
+		},
+		{
+			name:    "valid url",
+			request: `[{"correlation_id":"1","original_url":"https://ya.ru"}]`,
+			want: want{
+				stastusCode: http.StatusCreated,
+				contenType:  "application/json; charset=utf-8",
+				response:    map[string]interface{}{"short_url": "http"},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := config.Config{
+				BasicPath: config.DefaultBasicPath,
+			}
+			testLogger, err := logger.InitLogger()
+			assert.NoError(t, err)
+			interactor := usecases.NewInteractor(
+				context.Background(),
+				testLogger.Named("interactor"),
+				cfg.BasicPath,
+				repository.NewLinks(),
+			)
+			conntroller := NewController(testLogger.Named("controller"), interactor)
+
+			w := httptest.NewRecorder()
+			ctx, _ := gin.CreateTestContext(w)
+			ctx.Request = httptest.NewRequest(http.MethodPost, "/api/shorten/batch", strings.NewReader(tt.request))
+
+			middleware, err := middlewares.NewMiddleware(
+				"../../../public.pem",
+				"../../../private.pem",
+				testLogger.Named("middleware"),
+			)
+			assert.NoError(t, err)
+			auth := middleware.Auth()
+			auth(ctx)
+
+			conntroller.CreateShortLinkJSONBatch(ctx)
+
+			result := w.Result()
+
+			assert.Equal(t, tt.want.stastusCode, result.StatusCode)
+			assert.Equal(t, tt.want.contenType, result.Header.Get("Content-Type"))
+
+			resultBody, err := io.ReadAll(result.Body)
+			assert.NoError(t, err)
+			err = result.Body.Close()
+			assert.NoError(t, err)
+
+			for _, val := range tt.want.response {
+				assert.Contains(t, string(resultBody), val)
+			}
+		})
+	}
+}
+
 func TestGetShortLink(t *testing.T) {
 	type input struct {
 		path  string
@@ -329,6 +434,245 @@ func TestGetShortLink(t *testing.T) {
 
 			assert.Equal(t, tt.want.stastusCode, result.StatusCode)
 			assert.Equal(t, tt.want.location, result.Header.Get("Location"))
+		})
+	}
+}
+
+func TestPingDB(t *testing.T) {
+	tests := []struct {
+		name string
+		want int
+	}{
+		{
+			name: "valid data",
+			want: http.StatusInternalServerError,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := config.Config{
+				BasicPath: config.DefaultBasicPath,
+			}
+			testLogger, err := logger.InitLogger()
+			assert.NoError(t, err)
+			interactor := usecases.NewInteractor(
+				context.Background(),
+				testLogger.Named("interactor"),
+				cfg.BasicPath,
+				repository.NewLinks(),
+			)
+			conntroller := NewController(testLogger.Named("controller"), interactor)
+
+			w := httptest.NewRecorder()
+			ctx, _ := gin.CreateTestContext(w)
+			ctx.Request = httptest.NewRequest(http.MethodGet, "/ping", http.NoBody)
+
+			middleware, err := middlewares.NewMiddleware(
+				"../../../public.pem",
+				"../../../private.pem",
+				testLogger.Named("middleware"),
+			)
+			assert.NoError(t, err)
+			auth := middleware.Auth()
+			auth(ctx)
+
+			conntroller.PingDB(ctx)
+
+			result := w.Result()
+
+			err = result.Body.Close()
+			assert.NoError(t, err)
+
+			assert.Equal(t, tt.want, result.StatusCode)
+		})
+	}
+}
+
+func TestGetShortLinksOfUser(t *testing.T) {
+	tests := []struct {
+		name string
+		want int
+	}{
+		{
+			name: "valid data",
+			want: http.StatusNoContent,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := config.Config{
+				BasicPath: config.DefaultBasicPath,
+			}
+			testLogger, err := logger.InitLogger()
+			assert.NoError(t, err)
+			interactor := usecases.NewInteractor(
+				context.Background(),
+				testLogger.Named("interactor"),
+				cfg.BasicPath,
+				repository.NewLinks(),
+			)
+			conntroller := NewController(testLogger.Named("controller"), interactor)
+
+			privateKeyFile, err := os.ReadFile("../../../private.pem")
+			assert.NoError(t, err)
+			privateKey, err := jwt.ParseEdPrivateKeyFromPEM(privateKeyFile)
+			assert.NoError(t, err)
+			userID := uuid.New()
+			claims := &middlewares.JWT{
+				RegisteredClaims: jwt.RegisteredClaims{
+					Issuer:    "url_shortener",
+					Subject:   userID.String(),
+					Audience:  jwt.ClaimStrings{},
+					ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Second * 900)),
+					NotBefore: jwt.NewNumericDate(time.Now()),
+					IssuedAt:  jwt.NewNumericDate(time.Now()),
+					ID:        uuid.New().String(),
+				},
+				UserID: userID,
+			}
+			token := jwt.NewWithClaims(jwt.SigningMethodEdDSA, claims)
+			tokenString, err := token.SignedString(privateKey)
+			assert.NoError(t, err)
+
+			w := httptest.NewRecorder()
+			ctx, _ := gin.CreateTestContext(w)
+			ctx.Request = httptest.NewRequest(http.MethodGet, "/api/user/urls", http.NoBody)
+			ctx.Request.AddCookie(&http.Cookie{
+				Name:   middlewares.Authorization,
+				Value:  tokenString,
+				Path:   "/",
+				Domain: "",
+			})
+
+			middleware, err := middlewares.NewMiddleware(
+				"../../../public.pem",
+				"../../../private.pem",
+				testLogger.Named("middleware"),
+			)
+			assert.NoError(t, err)
+			auth := middleware.Auth()
+			auth(ctx)
+
+			conntroller.GetShortLinksOfUser(ctx)
+
+			result := w.Result()
+
+			err = result.Body.Close()
+			assert.NoError(t, err)
+
+			assert.Equal(t, tt.want, result.StatusCode)
+		})
+	}
+}
+
+func TestDeleteURLs(t *testing.T) {
+	tests := []struct {
+		name    string
+		file    bool
+		request string
+		want    int
+	}{
+		{
+			name:    "valid url in memory",
+			file:    false,
+			request: `["1"]`,
+			want:    http.StatusAccepted,
+		},
+		{
+			name:    "valid url in file",
+			file:    true,
+			request: `["1"]`,
+			want:    http.StatusAccepted,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := config.Config{
+				BasicPath: config.DefaultBasicPath,
+			}
+			testLogger, err := logger.InitLogger()
+			assert.NoError(t, err)
+
+			var urlRepository repository.Repository
+			if tt.file {
+				file, err := os.CreateTemp("./", "*.test")
+				assert.NoError(t, err)
+				urlRepository, err = repository.NewLinksWithFile(file.Name())
+				assert.NoError(t, err)
+			} else {
+				urlRepository = repository.NewLinks()
+			}
+
+			interactor := usecases.NewInteractor(
+				context.Background(),
+				testLogger.Named("interactor"),
+				cfg.BasicPath,
+				urlRepository,
+			)
+			conntroller := NewController(testLogger.Named("controller"), interactor)
+
+			privateKeyFile, err := os.ReadFile("../../../private.pem")
+			assert.NoError(t, err)
+			privateKey, err := jwt.ParseEdPrivateKeyFromPEM(privateKeyFile)
+			assert.NoError(t, err)
+			userID := uuid.New()
+			claims := &middlewares.JWT{
+				RegisteredClaims: jwt.RegisteredClaims{
+					Issuer:    "url_shortener",
+					Subject:   userID.String(),
+					Audience:  jwt.ClaimStrings{},
+					ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Second * 900)),
+					NotBefore: jwt.NewNumericDate(time.Now()),
+					IssuedAt:  jwt.NewNumericDate(time.Now()),
+					ID:        uuid.New().String(),
+				},
+				UserID: userID,
+			}
+			token := jwt.NewWithClaims(jwt.SigningMethodEdDSA, claims)
+			tokenString, err := token.SignedString(privateKey)
+			assert.NoError(t, err)
+
+			w := httptest.NewRecorder()
+			ctx, _ := gin.CreateTestContext(w)
+			ctx.Request = httptest.NewRequest(
+				http.MethodPost,
+				"/api/shorten/batch",
+				strings.NewReader(`[{"correlation_id":"1","original_url":"https://ya.ru"}]`))
+
+			middleware, err := middlewares.NewMiddleware(
+				"../../../public.pem",
+				"../../../private.pem",
+				testLogger.Named("middleware"),
+			)
+			assert.NoError(t, err)
+			auth := middleware.Auth()
+			auth(ctx)
+
+			conntroller.CreateShortLinkJSONBatch(ctx)
+
+			w = httptest.NewRecorder()
+			ctx, _ = gin.CreateTestContext(w)
+			ctx.Request = httptest.NewRequest(http.MethodDelete, "/api/user/urls", strings.NewReader(tt.request))
+			ctx.Request.AddCookie(&http.Cookie{
+				Name:   middlewares.Authorization,
+				Value:  tokenString,
+				Path:   "/",
+				Domain: "",
+			})
+
+			auth(ctx)
+
+			conntroller.DeleteURLs(ctx)
+
+			result := w.Result()
+
+			err = result.Body.Close()
+			assert.NoError(t, err)
+
+			assert.Equal(t, tt.want, result.StatusCode)
 		})
 	}
 }

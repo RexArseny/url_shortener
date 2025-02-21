@@ -13,8 +13,10 @@ import (
 	"github.com/google/uuid"
 )
 
+// Mode to operate with file with URLs data.
 const fileMode = 0o600
 
+// URL is a model of URLs which stored in file.
 type URL struct {
 	ShortURL    string `json:"short_url"`
 	OriginalURL string `json:"original_url"`
@@ -23,12 +25,14 @@ type URL struct {
 	Deleted     bool   `json:"deleted"`
 }
 
+// LinksWithFile is a repository which stores data in file.
 type LinksWithFile struct {
 	*Links
 	file      *os.File
 	currentID int
 }
 
+// NewLinksWithFile create new LinksWithFile.
 func NewLinksWithFile(fileStoragePath string) (*LinksWithFile, error) {
 	file, err := os.OpenFile(fileStoragePath, os.O_RDWR|os.O_CREATE|os.O_APPEND, fileMode)
 	if err != nil {
@@ -71,6 +75,7 @@ func NewLinksWithFile(fileStoragePath string) (*LinksWithFile, error) {
 	return linksWithFile, nil
 }
 
+// SetLink add short URL if such does not exist already.
 func (l *LinksWithFile) SetLink(
 	_ context.Context,
 	originalURL string,
@@ -115,6 +120,7 @@ func (l *LinksWithFile) SetLink(
 	return nil, ErrReachedMaxGenerationRetries
 }
 
+// SetLinks add short URLs if such do not exist already.
 func (l *LinksWithFile) SetLinks(
 	_ context.Context,
 	batch []models.ShortenBatchRequest,
@@ -184,6 +190,7 @@ func (l *LinksWithFile) SetLinks(
 	return result, nil
 }
 
+// DeleteURLs delete URLs.
 func (l *LinksWithFile) DeleteURLs(_ context.Context, urls []string, userID uuid.UUID) error {
 	l.m.Lock()
 	defer l.m.Unlock()
@@ -224,6 +231,7 @@ func (l *LinksWithFile) DeleteURLs(_ context.Context, urls []string, userID uuid
 	return nil
 }
 
+// Close close the file.
 func (l *LinksWithFile) Close() error {
 	err := l.file.Close()
 	if err != nil {

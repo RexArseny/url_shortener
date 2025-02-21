@@ -14,13 +14,16 @@ import (
 	"go.uber.org/zap"
 )
 
+// ID is name of URL parameter.
 const ID = "id"
 
+// Controller is responsible for managing the network interactions of the service.
 type Controller struct {
 	logger     *zap.Logger
 	interactor usecases.Interactor
 }
 
+// NewController create new Controller.
 func NewController(logger *zap.Logger, interactor usecases.Interactor) Controller {
 	return Controller{
 		logger:     logger,
@@ -28,6 +31,9 @@ func NewController(logger *zap.Logger, interactor usecases.Interactor) Controlle
 	}
 }
 
+// CreateShortLink create new short URL from original URL.
+// Input and output are in plain text format.
+// Generate new JWT and put it in cookie if it is not presented.
 func (c *Controller) CreateShortLink(ctx *gin.Context) {
 	tokenValue, ok := ctx.Get(middlewares.Authorization)
 	if !ok {
@@ -72,6 +78,9 @@ func (c *Controller) CreateShortLink(ctx *gin.Context) {
 	ctx.String(http.StatusCreated, *result)
 }
 
+// CreateShortLinkJSON create new short URL from original URL.
+// Input and output are in JSON format.
+// Generate new JWT and put it in cookie if it is not presented.
 func (c *Controller) CreateShortLinkJSON(ctx *gin.Context) {
 	tokenValue, ok := ctx.Get(middlewares.Authorization)
 	if !ok {
@@ -125,6 +134,9 @@ func (c *Controller) CreateShortLinkJSON(ctx *gin.Context) {
 	})
 }
 
+// CreateShortLinkJSONBatch create new short URLs from original URLs.
+// Input and output are in JSON format.
+// Generate new JWT and put it in cookie if it is not presented.
 func (c *Controller) CreateShortLinkJSONBatch(ctx *gin.Context) {
 	tokenValue, ok := ctx.Get(middlewares.Authorization)
 	if !ok {
@@ -168,6 +180,7 @@ func (c *Controller) CreateShortLinkJSONBatch(ctx *gin.Context) {
 	ctx.JSON(http.StatusCreated, result)
 }
 
+// GetShortLink return original URL from short URL.
 func (c *Controller) GetShortLink(ctx *gin.Context) {
 	data := ctx.Param(ID)
 
@@ -190,6 +203,7 @@ func (c *Controller) GetShortLink(ctx *gin.Context) {
 	ctx.Redirect(http.StatusTemporaryRedirect, *result)
 }
 
+// PingDB ping and return the status of database.
 func (c *Controller) PingDB(ctx *gin.Context) {
 	err := c.interactor.PingDB(ctx)
 	if err != nil {
@@ -201,10 +215,11 @@ func (c *Controller) PingDB(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"status": http.StatusText(http.StatusOK)})
 }
 
+// GetShortLinksOfUser return all short and original URLs of user if such exist and JWT is presented.
 func (c *Controller) GetShortLinksOfUser(ctx *gin.Context) {
 	newToken := ctx.GetBool(middlewares.AuthorizationNew)
 	if newToken {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"error": http.StatusText(http.StatusUnauthorized)})
+		ctx.JSON(http.StatusNoContent, gin.H{"error": http.StatusText(http.StatusNoContent)})
 		return
 	}
 	tokenValue, ok := ctx.Get(middlewares.Authorization)
@@ -233,6 +248,7 @@ func (c *Controller) GetShortLinksOfUser(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, result)
 }
 
+// DeleteURLs delete short URLs of user if such exist and JWT is presented.
 func (c *Controller) DeleteURLs(ctx *gin.Context) {
 	newToken := ctx.GetBool(middlewares.AuthorizationNew)
 	if newToken {
