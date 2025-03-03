@@ -17,6 +17,16 @@ const (
 	connClosed = "conn closed"
 )
 
+// IPool is a Pool interface.
+type IPool interface {
+	QueryRow(ctx context.Context, sql string, args ...interface{}) pgx.Row
+	Query(ctx context.Context, sql string, args ...interface{}) (pgx.Rows, error)
+	Exec(ctx context.Context, sql string, args ...interface{}) (pgconn.CommandTag, error)
+	Begin(ctx context.Context) (pgx.Tx, error)
+	Ping(ctx context.Context) error
+	Close()
+}
+
 // Pool is a wrapper for database Pool.
 type Pool struct {
 	*pgxpool.Pool

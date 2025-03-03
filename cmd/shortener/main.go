@@ -19,7 +19,7 @@ func main() {
 		log.Fatalf("Can not init logger: %s", err)
 	}
 	defer func() {
-		if err := mainLogger.Sync(); err != nil {
+		if err = mainLogger.Sync(); err != nil {
 			log.Fatalf("Logger sync failed: %s", err)
 		}
 	}()

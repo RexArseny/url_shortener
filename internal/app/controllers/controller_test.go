@@ -17,6 +17,7 @@ import (
 	"github.com/RexArseny/url_shortener/internal/app/config"
 	"github.com/RexArseny/url_shortener/internal/app/logger"
 	"github.com/RexArseny/url_shortener/internal/app/middlewares"
+	"github.com/RexArseny/url_shortener/internal/app/models"
 	"github.com/RexArseny/url_shortener/internal/app/repository"
 	"github.com/RexArseny/url_shortener/internal/app/usecases"
 	"github.com/gin-gonic/gin"
@@ -76,6 +77,16 @@ func TestCreateShortLink(t *testing.T) {
 			assert.NoError(t, err)
 			urlRepository, err := repository.NewLinksWithFile(file.Name())
 			assert.NoError(t, err)
+
+			defer func() {
+				err = urlRepository.Close()
+				assert.NoError(t, err)
+				err = file.Close()
+				assert.NoError(t, err)
+				err = os.Remove(file.Name())
+				assert.NoError(t, err)
+			}()
+
 			interactor := usecases.NewInteractor(
 				context.Background(),
 				testLogger.Named("interactor"),
@@ -569,22 +580,19 @@ func TestGetShortLinksOfUser(t *testing.T) {
 
 func TestDeleteURLs(t *testing.T) {
 	tests := []struct {
-		name    string
-		file    bool
-		request string
-		want    int
+		name string
+		file bool
+		want int
 	}{
 		{
-			name:    "valid url in memory",
-			file:    false,
-			request: `["1"]`,
-			want:    http.StatusAccepted,
+			name: "valid url in memory",
+			file: false,
+			want: http.StatusAccepted,
 		},
 		{
-			name:    "valid url in file",
-			file:    true,
-			request: `["1"]`,
-			want:    http.StatusAccepted,
+			name: "valid url in file",
+			file: true,
+			want: http.StatusAccepted,
 		},
 	}
 
@@ -597,14 +605,30 @@ func TestDeleteURLs(t *testing.T) {
 			assert.NoError(t, err)
 
 			var urlRepository repository.Repository
+			var file *os.File
 			if tt.file {
-				file, err := os.CreateTemp("./", "*.test")
+				file, err = os.CreateTemp("./", "*.test")
 				assert.NoError(t, err)
 				urlRepository, err = repository.NewLinksWithFile(file.Name())
 				assert.NoError(t, err)
 			} else {
 				urlRepository = repository.NewLinks()
 			}
+
+			defer func() {
+				if tt.file {
+					linksWithFile, ok := urlRepository.(*repository.LinksWithFile)
+					if !ok {
+						return
+					}
+					err = linksWithFile.Close()
+					assert.NoError(t, err)
+					err = file.Close()
+					assert.NoError(t, err)
+					err = os.Remove(file.Name())
+					assert.NoError(t, err)
+				}
+			}()
 
 			interactor := usecases.NewInteractor(
 				context.Background(),
@@ -613,27 +637,6 @@ func TestDeleteURLs(t *testing.T) {
 				urlRepository,
 			)
 			conntroller := NewController(testLogger.Named("controller"), interactor)
-
-			privateKeyFile, err := os.ReadFile("../../../private.pem")
-			assert.NoError(t, err)
-			privateKey, err := jwt.ParseEdPrivateKeyFromPEM(privateKeyFile)
-			assert.NoError(t, err)
-			userID := uuid.New()
-			claims := &middlewares.JWT{
-				RegisteredClaims: jwt.RegisteredClaims{
-					Issuer:    "url_shortener",
-					Subject:   userID.String(),
-					Audience:  jwt.ClaimStrings{},
-					ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Second * 900)),
-					NotBefore: jwt.NewNumericDate(time.Now()),
-					IssuedAt:  jwt.NewNumericDate(time.Now()),
-					ID:        uuid.New().String(),
-				},
-				UserID: userID,
-			}
-			token := jwt.NewWithClaims(jwt.SigningMethodEdDSA, claims)
-			tokenString, err := token.SignedString(privateKey)
-			assert.NoError(t, err)
 
 			w := httptest.NewRecorder()
 			ctx, _ := gin.CreateTestContext(w)
@@ -653,9 +656,32 @@ func TestDeleteURLs(t *testing.T) {
 
 			conntroller.CreateShortLinkJSONBatch(ctx)
 
+			result := w.Result()
+
+			var tokenString string
+			for _, cookie := range result.Cookies() {
+				if cookie.Name == middlewares.Authorization {
+					tokenString = cookie.Value
+				}
+			}
+
+			resultBody, err := io.ReadAll(result.Body)
+			assert.NoError(t, err)
+			err = result.Body.Close()
+			assert.NoError(t, err)
+
+			var data []models.ShortenBatchResponse
+			err = json.Unmarshal(resultBody, &data)
+			assert.NoError(t, err)
+			assert.NotEmpty(t, data)
+
+			parsedURL, err := url.ParseRequestURI(data[0].ShortURL)
+			assert.NoError(t, err)
+			assert.NotEmpty(t, parsedURL)
+
 			w = httptest.NewRecorder()
 			ctx, _ = gin.CreateTestContext(w)
-			ctx.Request = httptest.NewRequest(http.MethodDelete, "/api/user/urls", strings.NewReader(tt.request))
+			ctx.Request = httptest.NewRequest(http.MethodDelete, "/api/user/urls", strings.NewReader(`["`+path.Base(parsedURL.Path)+`"]`))
 			ctx.Request.AddCookie(&http.Cookie{
 				Name:   middlewares.Authorization,
 				Value:  tokenString,
@@ -667,7 +693,7 @@ func TestDeleteURLs(t *testing.T) {
 
 			conntroller.DeleteURLs(ctx)
 
-			result := w.Result()
+			result = w.Result()
 
 			err = result.Body.Close()
 			assert.NoError(t, err)

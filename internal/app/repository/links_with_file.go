@@ -204,9 +204,19 @@ func (l *LinksWithFile) DeleteURLs(_ context.Context, urls []string, userID uuid
 		}
 	}
 
-	err := l.file.Truncate(0)
+	err := l.file.Close()
+	if err != nil {
+		return fmt.Errorf("can not close file: %w", err)
+	}
+
+	err = os.Truncate(l.file.Name(), 0)
 	if err != nil {
 		return fmt.Errorf("can not truncate file: %w", err)
+	}
+
+	l.file, err = os.OpenFile(l.file.Name(), os.O_RDWR|os.O_CREATE|os.O_APPEND, fileMode)
+	if err != nil {
+		return fmt.Errorf("can not open file: %w", err)
 	}
 
 	var i int
