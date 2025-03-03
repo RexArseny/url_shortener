@@ -681,7 +681,10 @@ func TestDeleteURLs(t *testing.T) {
 
 			w = httptest.NewRecorder()
 			ctx, _ = gin.CreateTestContext(w)
-			ctx.Request = httptest.NewRequest(http.MethodDelete, "/api/user/urls", strings.NewReader(`["`+path.Base(parsedURL.Path)+`"]`))
+			ctx.Request = httptest.NewRequest(
+				http.MethodDelete,
+				"/api/user/urls",
+				strings.NewReader(`["`+path.Base(parsedURL.Path)+`"]`))
 			ctx.Request.AddCookie(&http.Cookie{
 				Name:   middlewares.Authorization,
 				Value:  tokenString,

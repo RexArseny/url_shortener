@@ -52,7 +52,11 @@ func (m *MockPool) QueryRow(ctx context.Context, sql string, args ...interface{}
 func (mr *MockPoolMockRecorder) QueryRow(ctx interface{}, sql interface{}, args ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, sql}, args...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "QueryRow", reflect.TypeOf((*MockPool)(nil).QueryRow), varargs...)
+	return mr.mock.ctrl.RecordCallWithMethodType(
+		mr.mock,
+		"QueryRow",
+		reflect.TypeOf((*MockPool)(nil).QueryRow),
+		varargs...)
 }
 
 // Query mocks the Query method.

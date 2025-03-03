@@ -6,12 +6,14 @@ import (
 	"golang.org/x/tools/go/analysis"
 )
 
+// Analyzer check for no use of os.Exit.
 var Analyzer = &analysis.Analyzer{
 	Name: "exit",
 	Doc:  "check for no use of os.Exit",
 	Run:  run,
 }
 
+// run start the check of no use of os.Exit.
 func run(pass *analysis.Pass) (interface{}, error) {
 	for _, file := range pass.Files {
 		if file.Name.Name == "main" {
