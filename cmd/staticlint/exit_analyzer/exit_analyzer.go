@@ -16,33 +16,44 @@ var Analyzer = &analysis.Analyzer{
 // run start the check of no use of os.Exit.
 func run(pass *analysis.Pass) (interface{}, error) {
 	for _, file := range pass.Files {
-		if file.Name.Name == "main" {
-			ast.Inspect(file, func(node ast.Node) bool {
-				if function, ok := node.(*ast.FuncDecl); ok {
-					if function.Name.Name == "main" {
-						for _, item := range function.Body.List {
-							if expresion, ok := item.(*ast.ExprStmt); ok {
-								if call, ok := expresion.X.(*ast.CallExpr); ok {
-									if line, ok := call.Fun.(*ast.SelectorExpr); ok {
-										if pac, ok := line.X.(*ast.Ident); ok && pac.Name == "os" && line.Sel.Name == "Exit" {
-											pass.Report(analysis.Diagnostic{
-												Pos:     pac.NamePos,
-												End:     line.Sel.NamePos,
-												Message: "use of os.Exit in main function in main package",
-											})
-
-											return false
-										}
-									}
-								}
-							}
-						}
-					}
-				}
-
-				return true
-			})
+		if file.Name.Name != "main" {
+			continue
 		}
+
+		ast.Inspect(file, func(node ast.Node) bool {
+			function, ok := node.(*ast.FuncDecl)
+			if !ok {
+				return true
+			}
+			if function.Name.Name != "main" {
+				return true
+			}
+			for _, item := range function.Body.List {
+				expresion, ok := item.(*ast.ExprStmt)
+				if !ok {
+					continue
+				}
+				call, ok := expresion.X.(*ast.CallExpr)
+				if !ok {
+					continue
+				}
+				line, ok := call.Fun.(*ast.SelectorExpr)
+				if !ok {
+					continue
+				}
+				if pac, ok := line.X.(*ast.Ident); ok && pac.Name == "os" && line.Sel.Name == "Exit" {
+					pass.Report(analysis.Diagnostic{
+						Pos:     pac.NamePos,
+						End:     line.Sel.NamePos,
+						Message: "use of os.Exit in main function in main package",
+					})
+
+					return false
+				}
+			}
+
+			return true
+		})
 	}
 
 	return nil, nil
