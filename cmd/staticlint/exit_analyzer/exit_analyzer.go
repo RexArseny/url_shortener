@@ -28,18 +28,18 @@ func run(pass *analysis.Pass) (interface{}, error) {
 			if function.Name.Name != "main" {
 				return true
 			}
-			for _, item := range function.Body.List {
-				expresion, ok := item.(*ast.ExprStmt)
+			ast.Inspect(function.Body, func(node ast.Node) bool {
+				expresion, ok := node.(*ast.ExprStmt)
 				if !ok {
-					continue
+					return true
 				}
 				call, ok := expresion.X.(*ast.CallExpr)
 				if !ok {
-					continue
+					return true
 				}
 				line, ok := call.Fun.(*ast.SelectorExpr)
 				if !ok {
-					continue
+					return true
 				}
 				if pac, ok := line.X.(*ast.Ident); ok && pac.Name == "os" && line.Sel.Name == "Exit" {
 					pass.Report(analysis.Diagnostic{
@@ -50,7 +50,9 @@ func run(pass *analysis.Pass) (interface{}, error) {
 
 					return false
 				}
-			}
+
+				return true
+			})
 
 			return true
 		})
