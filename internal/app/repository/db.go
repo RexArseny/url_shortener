@@ -21,7 +21,7 @@ import (
 // DBRepository is a repository which stores data in database.
 type DBRepository struct {
 	logger *zap.Logger
-	pool   *Pool
+	pool   IPool
 }
 
 // NewDBRepository create new DBRepository.
@@ -159,7 +159,7 @@ func (d *DBRepository) SetLinks(
 		b := &pgx.Batch{}
 
 		for j := range originalURLs {
-			_, err := url.ParseRequestURI(originalURLs[j])
+			_, err = url.ParseRequestURI(originalURLs[j])
 			if err != nil {
 				return nil, ErrInvalidURL
 			}
@@ -191,7 +191,7 @@ func (d *DBRepository) SetLinks(
 			return nil, fmt.Errorf("can not close batch: %w", err)
 		}
 
-		if len(originalURLs) == 0 {
+		if j == 0 {
 			err = tx.Commit(ctx)
 			if err != nil {
 				return nil, fmt.Errorf("can not commit transaction: %w", err)

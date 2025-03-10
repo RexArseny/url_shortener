@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 
 	"github.com/RexArseny/url_shortener/internal/app"
@@ -9,6 +10,12 @@ import (
 	"github.com/RexArseny/url_shortener/internal/app/logger"
 	"github.com/RexArseny/url_shortener/internal/app/repository"
 	"go.uber.org/zap"
+)
+
+var (
+	buildVersion = "N/A"
+	buildDate    = "N/A"
+	buildCommit  = "N/A"
 )
 
 func main() {
@@ -19,7 +26,7 @@ func main() {
 		log.Fatalf("Can not init logger: %s", err)
 	}
 	defer func() {
-		if err := mainLogger.Sync(); err != nil {
+		if err = mainLogger.Sync(); err != nil {
 			log.Fatalf("Logger sync failed: %s", err)
 		}
 	}()
@@ -51,6 +58,10 @@ func main() {
 	if err != nil {
 		mainLogger.Fatal("Can not init server", zap.Error(err))
 	}
+
+	fmt.Printf("Build version: %s\n", buildVersion)
+	fmt.Printf("Build date: %s\n", buildDate)
+	fmt.Printf("Build commit: %s\n", buildCommit)
 
 	err = s.ListenAndServe()
 	if err != nil {
