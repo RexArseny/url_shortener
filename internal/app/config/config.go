@@ -14,6 +14,7 @@ const (
 	DefaultFileStoragePath = "shorturls.txt"
 	DefaultPublicKeyPath   = "public.pem"
 	DefaultPrivateKeyPath  = "private.pem"
+	DefaultEnableHTTPS     = false
 )
 
 // Config is a set of service configurable variables.
@@ -24,6 +25,7 @@ type Config struct {
 	DatabaseDSN     string `env:"DATABASE_DSN"`
 	PublicKeyPath   string `env:"PUBLIC_KEY_PATH"`
 	PrivateKeyPath  string `env:"PRIVATE_KEY_PATH"`
+	EnableHTTPS     bool   `env:"ENABLE_HTTPS"`
 }
 
 // Init parse values for Config from environment and flags.
@@ -35,7 +37,8 @@ func Init() (*Config, error) {
 	flag.StringVar(&cfg.FileStoragePath, "f", DefaultFileStoragePath, "file storage path")
 	flag.StringVar(&cfg.DatabaseDSN, "d", "", "database dsn")
 	flag.StringVar(&cfg.PublicKeyPath, "p", DefaultPublicKeyPath, "public key path")
-	flag.StringVar(&cfg.PrivateKeyPath, "s", DefaultPrivateKeyPath, "private key path")
+	flag.StringVar(&cfg.PrivateKeyPath, "k", DefaultPrivateKeyPath, "private key path")
+	flag.BoolVar(&cfg.EnableHTTPS, "s", DefaultEnableHTTPS, "enable https")
 
 	flag.Parse()
 

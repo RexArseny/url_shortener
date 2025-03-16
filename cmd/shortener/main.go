@@ -63,6 +63,15 @@ func main() {
 	fmt.Printf("Build date: %s\n", buildDate)
 	fmt.Printf("Build commit: %s\n", buildCommit)
 
+	if cfg.EnableHTTPS {
+		err = s.ListenAndServeTLS("", "")
+		if err != nil {
+			mainLogger.Fatal("Can not listen and serve", zap.Error(err))
+		}
+
+		return
+	}
+
 	err = s.ListenAndServe()
 	if err != nil {
 		mainLogger.Fatal("Can not listen and serve", zap.Error(err))
