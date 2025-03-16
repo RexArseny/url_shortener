@@ -110,7 +110,8 @@ func TestInit(t *testing.T) {
 
 			os.Clearenv()
 			for key, value := range tt.envVars {
-				os.Setenv(key, value)
+				err := os.Setenv(key, value)
+				assert.NoError(t, err)
 			}
 
 			cfg, err := Init()
