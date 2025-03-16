@@ -1,3 +1,4 @@
+//nolint:reassign // reassign for tests
 package config
 
 import (
@@ -17,7 +18,8 @@ func TestInit(t *testing.T) {
 		os.Clearenv()
 		for _, envVar := range oldEnv {
 			keyVal := strings.SplitN(envVar, "=", 2)
-			os.Setenv(keyVal[0], keyVal[1])
+			err := os.Setenv(keyVal[0], keyVal[1])
+			assert.NoError(t, err)
 		}
 	}()
 

@@ -76,6 +76,8 @@ func TestTxQuery(t *testing.T) {
 		rows, err := wrappedTx.Query(ctx, sql)
 		assert.NoError(t, err)
 		assert.NotNil(t, rows)
+
+		rows.Close()
 	})
 
 	t.Run("retry on connection closed", func(t *testing.T) {
@@ -93,6 +95,8 @@ func TestTxQuery(t *testing.T) {
 		rows, err := wrappedTx.Query(ctx, sql)
 		assert.NoError(t, err)
 		assert.NotNil(t, rows)
+
+		rows.Close()
 	})
 
 	t.Run("retry exhausted", func(t *testing.T) {
@@ -109,6 +113,8 @@ func TestTxQuery(t *testing.T) {
 		rows, err := wrappedTx.Query(ctx, sql)
 		assert.Error(t, err)
 		assert.Nil(t, rows)
+
+		rows.Close()
 	})
 }
 
