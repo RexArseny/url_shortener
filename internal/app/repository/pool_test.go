@@ -114,7 +114,9 @@ func TestTxQuery(t *testing.T) {
 		assert.Error(t, err)
 		assert.Nil(t, rows)
 
-		rows.Close()
+		if rows != nil {
+			rows.Close()
+		}
 	})
 }
 
