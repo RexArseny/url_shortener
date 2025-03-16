@@ -23,6 +23,9 @@ import (
 	"go.uber.org/zap"
 )
 
+// Number of bits of rsa key.
+const rsaKeyBits = 2048
+
 // NewServer create new server with new interactor, controller, middleware and router.
 func NewServer(
 	ctx context.Context,
@@ -65,7 +68,7 @@ func NewServer(
 			KeyUsage:     x509.KeyUsageDigitalSignature,
 		}
 
-		priv, err := rsa.GenerateKey(rand.Reader, 2048)
+		priv, err := rsa.GenerateKey(rand.Reader, rsaKeyBits)
 		if err != nil {
 			return nil, fmt.Errorf("can generate rsa key: %w", err)
 		}
@@ -83,7 +86,10 @@ func NewServer(
 			return nil, fmt.Errorf("can not create x509 key pair: %w", err)
 		}
 
-		server.TLSConfig = &tls.Config{Certificates: []tls.Certificate{x509Cert}}
+		server.TLSConfig = &tls.Config{
+			Certificates: []tls.Certificate{x509Cert},
+			MinVersion:   tls.VersionTLS13,
+		}
 	}
 
 	return server, nil
