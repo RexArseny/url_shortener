@@ -106,7 +106,7 @@ func TestLogger(t *testing.T) {
 
 		ctx.Writer.WriteHeader(http.StatusOK)
 
-		_, err := ctx.Writer.Write([]byte("test response"))
+		_, err := ctx.Writer.WriteString("test response")
 		assert.NoError(t, err)
 
 		assert.Equal(t, 1, recordedLogs.Len())
@@ -173,7 +173,7 @@ func TestGzipWriter(t *testing.T) {
 			writer:         gzWriter,
 		}
 
-		n, err := gw.Write([]byte("test"))
+		n, err := gw.WriteString("test")
 		assert.NoError(t, err)
 		assert.Equal(t, 4, n)
 
@@ -194,7 +194,7 @@ func TestGzipWriter(t *testing.T) {
 		err := gzWriter.Close()
 		assert.NoError(t, err)
 
-		_, err = gw.Write([]byte("test"))
+		_, err = gw.WriteString("test")
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "can not write string")
 	})
@@ -212,7 +212,8 @@ func TestCompressor(t *testing.T) {
 		gzWriter := gzip.NewWriter(&buf)
 		_, err := gzWriter.Write([]byte(`{"key":"value"}`))
 		assert.NoError(t, err)
-		gzWriter.Close()
+		err = gzWriter.Close()
+		assert.NoError(t, err)
 
 		req := httptest.NewRequest(http.MethodPost, "/", &buf)
 		req.Header.Set("Content-Encoding", "gzip")
@@ -230,7 +231,7 @@ func TestCompressor(t *testing.T) {
 	})
 
 	t.Run("compress response body", func(t *testing.T) {
-		req := httptest.NewRequest(http.MethodGet, "/", nil)
+		req := httptest.NewRequest(http.MethodGet, "/", http.NoBody)
 		req.Header.Set("Accept-Encoding", "gzip")
 		req.Header.Set("Content-Type", "application/json")
 
@@ -247,7 +248,10 @@ func TestCompressor(t *testing.T) {
 
 		gzReader, err := gzip.NewReader(resp.Body)
 		assert.NoError(t, err)
-		defer gzReader.Close()
+		defer func() {
+			err = gzReader.Close()
+			assert.NoError(t, err)
+		}()
 
 		var decompressed bytes.Buffer
 		_, err = decompressed.ReadFrom(gzReader)
@@ -292,7 +296,7 @@ func TestAuth(t *testing.T) {
 
 	t.Run("no JWT in cookie", func(t *testing.T) {
 		ctx, _ := gin.CreateTestContext(httptest.NewRecorder())
-		ctx.Request = httptest.NewRequest(http.MethodGet, "/", nil)
+		ctx.Request = httptest.NewRequest(http.MethodGet, "/", http.NoBody)
 
 		middleware.Auth()(ctx)
 
@@ -307,7 +311,9 @@ func TestAuth(t *testing.T) {
 
 		isNew, exists := ctx.Get(AuthorizationNew)
 		assert.True(t, exists)
-		assert.True(t, isNew.(bool))
+		check, ok := isNew.(bool)
+		assert.True(t, ok)
+		assert.True(t, check)
 	})
 
 	t.Run("valid JWT in cookie", func(t *testing.T) {
@@ -328,7 +334,7 @@ func TestAuth(t *testing.T) {
 		assert.NoError(t, err)
 
 		ctx, _ := gin.CreateTestContext(httptest.NewRecorder())
-		ctx.Request = httptest.NewRequest(http.MethodGet, "/", nil)
+		ctx.Request = httptest.NewRequest(http.MethodGet, "/", http.NoBody)
 		ctx.Request.AddCookie(&http.Cookie{
 			Name:  Authorization,
 			Value: tokenString,
@@ -344,7 +350,9 @@ func TestAuth(t *testing.T) {
 
 		isNew, exists := ctx.Get(AuthorizationNew)
 		assert.True(t, exists)
-		assert.False(t, isNew.(bool))
+		check, ok := isNew.(bool)
+		assert.True(t, ok)
+		assert.False(t, check)
 	})
 
 	t.Run("invalid JWT in cookie", func(t *testing.T) {
