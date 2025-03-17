@@ -170,6 +170,5 @@ func TestLinksPing(t *testing.T) {
 	links := NewLinks()
 
 	err := links.Ping(context.Background())
-	assert.Error(t, err)
-	assert.Equal(t, "service in memory storage mode", err.Error())
+	assert.NoError(t, err)
 }

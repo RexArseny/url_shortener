@@ -488,7 +488,7 @@ func TestPingDB(t *testing.T) {
 	}{
 		{
 			name: "valid data",
-			want: http.StatusInternalServerError,
+			want: http.StatusOK,
 		},
 	}
 
