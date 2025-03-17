@@ -2,6 +2,7 @@
 package config
 
 import (
+	"encoding/json"
 	"flag"
 	"os"
 	"strings"
@@ -24,16 +25,18 @@ func TestInit(t *testing.T) {
 	}()
 
 	tests := []struct {
-		name           string
-		args           []string
-		envVars        map[string]string
-		expectedConfig *Config
-		expectedError  string
+		name            string
+		args            []string
+		envVars         map[string]string
+		validConfigFile bool
+		expectedConfig  *Config
+		expectedError   string
 	}{
 		{
-			name:    "default values",
-			args:    []string{"cmd"},
-			envVars: map[string]string{},
+			name:            "default values",
+			args:            []string{"cmd"},
+			envVars:         map[string]string{},
+			validConfigFile: true,
 			expectedConfig: &Config{
 				ServerAddress:   DefaultServerAddress,
 				BasicPath:       DefaultBasicPath,
@@ -56,8 +59,10 @@ func TestInit(t *testing.T) {
 				"-p", "custom_public.pem",
 				"-k", "custom_private.pem",
 				"-s",
+				"-c", "config.json",
 			},
-			envVars: map[string]string{},
+			envVars:         map[string]string{},
+			validConfigFile: true,
 			expectedConfig: &Config{
 				ServerAddress:   "localhost:9090",
 				BasicPath:       "http://localhost:9090",
@@ -66,6 +71,7 @@ func TestInit(t *testing.T) {
 				PublicKeyPath:   "custom_public.pem",
 				PrivateKeyPath:  "custom_private.pem",
 				EnableHTTPS:     true,
+				Config:          "config.json",
 			},
 			expectedError: "",
 		},
@@ -80,7 +86,9 @@ func TestInit(t *testing.T) {
 				"PUBLIC_KEY_PATH":   "custom_public.pem",
 				"PRIVATE_KEY_PATH":  "custom_private.pem",
 				"ENABLE_HTTPS":      "true",
+				"CONFIG":            "config.json",
 			},
+			validConfigFile: true,
 			expectedConfig: &Config{
 				ServerAddress:   "localhost:9090",
 				BasicPath:       "http://localhost:9090",
@@ -89,6 +97,26 @@ func TestInit(t *testing.T) {
 				PublicKeyPath:   "custom_public.pem",
 				PrivateKeyPath:  "custom_private.pem",
 				EnableHTTPS:     true,
+				Config:          "config.json",
+			},
+			expectedError: "",
+		},
+		{
+			name: "config file overrides",
+			args: []string{"cmd"},
+			envVars: map[string]string{
+				"CONFIG": "config.json",
+			},
+			validConfigFile: true,
+			expectedConfig: &Config{
+				ServerAddress:   "localhost:9090",
+				BasicPath:       "http://localhost:9090",
+				FileStoragePath: "custom.txt",
+				DatabaseDSN:     "postgres://user:pass@localhost:5432/db",
+				PublicKeyPath:   "custom_public.pem",
+				PrivateKeyPath:  "custom_private.pem",
+				EnableHTTPS:     true,
+				Config:          "config.json",
 			},
 			expectedError: "",
 		},
@@ -98,8 +126,29 @@ func TestInit(t *testing.T) {
 			envVars: map[string]string{
 				"ENABLE_HTTPS": "invalid",
 			},
-			expectedConfig: nil,
-			expectedError:  "can not parse env",
+			validConfigFile: true,
+			expectedConfig:  nil,
+			expectedError:   "can not parse env",
+		},
+		{
+			name: "config file parsing error",
+			args: []string{"cmd"},
+			envVars: map[string]string{
+				"CONFIG": "custom_config.json",
+			},
+			validConfigFile: true,
+			expectedConfig:  nil,
+			expectedError:   "can not read config file",
+		},
+		{
+			name: "config file parsing error",
+			args: []string{"cmd"},
+			envVars: map[string]string{
+				"CONFIG": "invalid.json",
+			},
+			validConfigFile: false,
+			expectedConfig:  nil,
+			expectedError:   "can not unmarshal config file",
 		},
 	}
 
@@ -113,6 +162,24 @@ func TestInit(t *testing.T) {
 				err := os.Setenv(key, value)
 				assert.NoError(t, err)
 			}
+
+			configFileName := "config.json"
+			data, err := json.Marshal(tt.expectedConfig)
+			assert.NoError(t, err)
+			if !tt.validConfigFile {
+				configFileName = "invalid.json"
+				data = []byte("abc")
+			}
+			file, err := os.Create(configFileName)
+			assert.NoError(t, err)
+			_, err = file.Write(data)
+			assert.NoError(t, err)
+			err = file.Close()
+			assert.NoError(t, err)
+			defer func() {
+				err := os.Remove(configFileName)
+				assert.NoError(t, err)
+			}()
 
 			cfg, err := Init()
 
