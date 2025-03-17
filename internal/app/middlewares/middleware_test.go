@@ -51,7 +51,7 @@ func TestNewMiddleware(t *testing.T) {
 			assert.NoError(t, err)
 		}()
 
-		err := os.WriteFile(publicKeyPath, []byte("invalid public key"), 0644)
+		err := os.WriteFile(publicKeyPath, []byte("invalid public key"), 0o600)
 		assert.NoError(t, err)
 
 		testLogger, err := logger.InitLogger()
@@ -78,7 +78,7 @@ func TestNewMiddleware(t *testing.T) {
 			assert.NoError(t, err)
 		}()
 
-		err := os.WriteFile(privateKeyPath, []byte("invalid private key"), 0644)
+		err := os.WriteFile(privateKeyPath, []byte("invalid private key"), 0o600)
 		assert.NoError(t, err)
 
 		testLogger, err := logger.InitLogger()
@@ -93,26 +93,34 @@ func TestNewMiddleware(t *testing.T) {
 func TestLogger(t *testing.T) {
 	t.Run("successful logging", func(t *testing.T) {
 		core, recordedLogs := observer.New(zap.InfoLevel)
-		logger := zap.New(core)
+		testLogger := zap.New(core)
 
 		middleware := &Middleware{
-			logger: logger,
+			logger: testLogger,
 		}
 
 		ctx, _ := gin.CreateTestContext(httptest.NewRecorder())
-		ctx.Request = httptest.NewRequest(http.MethodGet, "/test?query=param", nil)
+		ctx.Request = httptest.NewRequest(http.MethodGet, "/test?query=param", http.NoBody)
 
 		middleware.Logger()(ctx)
 
 		ctx.Writer.WriteHeader(http.StatusOK)
-		ctx.Writer.Write([]byte("test response"))
+
+		_, err := ctx.Writer.Write([]byte("test response"))
+		assert.NoError(t, err)
 
 		assert.Equal(t, 1, recordedLogs.Len())
 		logEntry := recordedLogs.All()[0]
 		assert.Equal(t, "Request", logEntry.Message)
-		assert.Equal(t, int64(http.StatusOK), logEntry.ContextMap()["code"].(int64))
-		assert.Equal(t, http.MethodGet, logEntry.ContextMap()["method"].(string))
-		assert.Equal(t, "/test?query=param", logEntry.ContextMap()["path"].(string))
+		code, ok := logEntry.ContextMap()["code"].(int64)
+		assert.True(t, ok)
+		assert.Equal(t, int64(http.StatusOK), code)
+		method, ok := logEntry.ContextMap()["method"].(string)
+		assert.True(t, ok)
+		assert.Equal(t, http.MethodGet, method)
+		path, ok := logEntry.ContextMap()["path"].(string)
+		assert.True(t, ok)
+		assert.Equal(t, "/test?query=param", path)
 	})
 }
 
@@ -193,9 +201,10 @@ func TestGzipWriter(t *testing.T) {
 }
 
 func TestCompressor(t *testing.T) {
-	logger, _ := zap.NewDevelopment()
+	testLogger, err := logger.InitLogger()
+	assert.NoError(t, err)
 	middleware := &Middleware{
-		logger: logger,
+		logger: testLogger,
 	}
 
 	t.Run("decompress request body", func(t *testing.T) {
@@ -263,7 +272,7 @@ func TestCompressor(t *testing.T) {
 
 func TestAuth(t *testing.T) {
 	core, recordedLogs := observer.New(zap.InfoLevel)
-	logger := zap.New(core)
+	testLogger := zap.New(core)
 
 	publicKeyFile, err := os.ReadFile("../../../public.pem")
 	assert.NoError(t, err)
@@ -278,7 +287,7 @@ func TestAuth(t *testing.T) {
 	middleware := &Middleware{
 		publicKey:  publicKey,
 		privateKey: privateKey,
-		logger:     logger,
+		logger:     testLogger,
 	}
 
 	t.Run("no JWT in cookie", func(t *testing.T) {

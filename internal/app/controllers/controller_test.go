@@ -154,6 +154,9 @@ func TestCreateShortLink(t *testing.T) {
 
 				assert.Equal(t, http.StatusConflict, result.StatusCode)
 				assert.Equal(t, tt.want.contenType, result.Header.Get("Content-Type"))
+
+				err = result.Body.Close()
+				assert.NoError(t, err)
 			}
 		})
 	}
@@ -619,6 +622,9 @@ func TestGetShortLinksOfUser(t *testing.T) {
 						tokenString = cookie.Value
 					}
 				}
+
+				err = result.Body.Close()
+				assert.NoError(t, err)
 			}
 
 			w := httptest.NewRecorder()
