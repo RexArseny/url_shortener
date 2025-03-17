@@ -133,11 +133,16 @@ func TestBatchResultsExec(t *testing.T) {
 	t.Run("successful exec", func(t *testing.T) {
 		mockPool.ExpectBegin()
 		mockPool.ExpectBatch().ExpectExec("INSERT INTO test").WillReturnResult(pgxmock.NewResult("INSERT", 1))
+		mockPool.ExpectCommit()
 
 		tx, err := mockPool.Begin(ctx)
 		assert.NoError(t, err)
 
-		batchResults := tx.SendBatch(ctx, batch)
+		wrappedTx := &Tx{
+			Tx: tx,
+		}
+
+		batchResults := wrappedTx.SendBatch(ctx, batch)
 		wrappedBatchResults := &BatchResults{
 			BatchResults: batchResults,
 			retry: func() pgx.BatchResults {
@@ -148,5 +153,8 @@ func TestBatchResultsExec(t *testing.T) {
 		commandTag, err := wrappedBatchResults.Exec()
 		assert.NoError(t, err)
 		assert.Equal(t, "INSERT 1", commandTag.String())
+
+		err = wrappedTx.Commit(ctx)
+		assert.NoError(t, err)
 	})
 }

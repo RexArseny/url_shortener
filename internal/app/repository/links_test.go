@@ -2,12 +2,44 @@ package repository
 
 import (
 	"context"
+	"sync"
 	"testing"
 
 	"github.com/RexArseny/url_shortener/internal/app/models"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 )
+
+func TestNewLinks(t *testing.T) {
+	t.Run("successful initialization", func(t *testing.T) {
+		links := NewLinks()
+
+		assert.NotNil(t, links)
+		assert.NotNil(t, links.m)
+		assert.NotNil(t, links.shortLinks)
+		assert.NotNil(t, links.originalURLs)
+
+		assert.IsType(t, &sync.Mutex{}, links.m)
+
+		assert.Empty(t, links.shortLinks)
+		assert.Empty(t, links.originalURLs)
+	})
+
+	t.Run("unsuccessful initialization", func(t *testing.T) {
+		links1 := NewLinks()
+		links2 := NewLinks()
+
+		links1.shortLinks["https://example.com"] = "abc123"
+		links1.originalURLs["abc123"] = ShortlURLInfo{
+			originalURL: "https://example.com",
+			userID:      uuid.New(),
+			deleted:     false,
+		}
+
+		assert.Empty(t, links2.shortLinks)
+		assert.Empty(t, links2.originalURLs)
+	})
+}
 
 func TestLinksGetOriginalURL(t *testing.T) {
 	links := NewLinks()

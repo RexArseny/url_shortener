@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"encoding/json"
 	"os"
 	"testing"
 
@@ -9,6 +10,168 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 )
+
+func TestNewLinksWithFile(t *testing.T) {
+	t.Run("successful creation with empty file", func(t *testing.T) {
+		file, err := os.CreateTemp("", "testfile")
+		assert.NoError(t, err)
+
+		linksWithFile, err := NewLinksWithFile(file.Name())
+		assert.NoError(t, err)
+		assert.NotNil(t, linksWithFile)
+		assert.Equal(t, 0, linksWithFile.currentID)
+
+		err = linksWithFile.Close()
+		assert.NoError(t, err)
+		err = file.Close()
+		assert.NoError(t, err)
+		err = os.Remove(file.Name())
+		assert.NoError(t, err)
+	})
+
+	t.Run("successful creation with valid data in file", func(t *testing.T) {
+		file, err := os.CreateTemp("", "testfile")
+		assert.NoError(t, err)
+
+		data := URL{
+			OriginalURL: "https://example.com",
+			ShortURL:    "abc123",
+			UserID:      uuid.New().String(),
+			Deleted:     false,
+		}
+		jsonData, err := json.Marshal(data)
+		assert.NoError(t, err)
+
+		_, err = file.WriteString(string(jsonData) + "\n")
+		assert.NoError(t, err)
+		err = file.Close()
+		assert.NoError(t, err)
+
+		linksWithFile, err := NewLinksWithFile(file.Name())
+		assert.NoError(t, err)
+		assert.NotNil(t, linksWithFile)
+		assert.Equal(t, 1, linksWithFile.currentID)
+
+		assert.Equal(t, data.ShortURL, linksWithFile.Links.shortLinks[data.OriginalURL])
+		assert.Equal(t, data.OriginalURL, linksWithFile.Links.originalURLs[data.ShortURL].originalURL)
+
+		err = linksWithFile.Close()
+		assert.NoError(t, err)
+		err = os.Remove(file.Name())
+		assert.NoError(t, err)
+	})
+
+	t.Run("file open error", func(t *testing.T) {
+		linksWithFile, err := NewLinksWithFile("/invalid/path")
+		assert.Error(t, err)
+		assert.Nil(t, linksWithFile)
+		assert.Contains(t, err.Error(), "can not open file")
+	})
+
+	t.Run("invalid JSON data in file", func(t *testing.T) {
+		file, err := os.CreateTemp("", "testfile")
+		assert.NoError(t, err)
+
+		_, err = file.WriteString("invalid json data\n")
+		assert.NoError(t, err)
+		err = file.Close()
+		assert.NoError(t, err)
+
+		linksWithFile, err := NewLinksWithFile(file.Name())
+		assert.Error(t, err)
+		assert.Nil(t, linksWithFile)
+		assert.Contains(t, err.Error(), "can not unmarshal data from file")
+	})
+
+	t.Run("duplicate original URL in file", func(t *testing.T) {
+		file, err := os.CreateTemp("", "testfile")
+		assert.NoError(t, err)
+
+		data1 := URL{
+			OriginalURL: "https://example.com",
+			ShortURL:    "abc123",
+			UserID:      uuid.New().String(),
+			Deleted:     false,
+		}
+		data2 := URL{
+			OriginalURL: "https://example.com",
+			ShortURL:    "def456",
+			UserID:      uuid.New().String(),
+			Deleted:     false,
+		}
+		jsonData1, err := json.Marshal(data1)
+		assert.NoError(t, err)
+		jsonData2, err := json.Marshal(data2)
+		assert.NoError(t, err)
+
+		_, err = file.WriteString(string(jsonData1) + "\n" + string(jsonData2) + "\n")
+		assert.NoError(t, err)
+		err = file.Close()
+		assert.NoError(t, err)
+
+		linksWithFile, err := NewLinksWithFile(file.Name())
+		assert.Error(t, err)
+		assert.Nil(t, linksWithFile)
+		assert.Equal(t, "duplicate original url in file", err.Error())
+	})
+
+	t.Run("duplicate short URL in file", func(t *testing.T) {
+		file, err := os.CreateTemp("", "testfile")
+		assert.NoError(t, err)
+
+		data1 := URL{
+			OriginalURL: "https://example.com",
+			ShortURL:    "abc123",
+			UserID:      uuid.New().String(),
+			Deleted:     false,
+		}
+		data2 := URL{
+			OriginalURL: "https://another.com",
+			ShortURL:    "abc123",
+			UserID:      uuid.New().String(),
+			Deleted:     false,
+		}
+		jsonData1, err := json.Marshal(data1)
+		assert.NoError(t, err)
+		jsonData2, err := json.Marshal(data2)
+		assert.NoError(t, err)
+
+		_, err = file.WriteString(string(jsonData1) + "\n" + string(jsonData2) + "\n")
+		assert.NoError(t, err)
+		err = file.Close()
+		assert.NoError(t, err)
+
+		linksWithFile, err := NewLinksWithFile(file.Name())
+		assert.Error(t, err)
+		assert.Nil(t, linksWithFile)
+		assert.Equal(t, "duplicate short url in file", err.Error())
+	})
+
+	t.Run("invalid user ID in file", func(t *testing.T) {
+		file, err := os.CreateTemp("", "testfile")
+		assert.NoError(t, err)
+
+		data := URL{
+			OriginalURL: "https://example.com",
+			ShortURL:    "abc123",
+			UserID:      "invalid-uuid",
+			Deleted:     false,
+		}
+		jsonData, err := json.Marshal(data)
+		assert.NoError(t, err)
+
+		_, err = file.WriteString(string(jsonData) + "\n")
+		assert.NoError(t, err)
+		err = file.Close()
+		assert.NoError(t, err)
+
+		linksWithFile, err := NewLinksWithFile(file.Name())
+		assert.NoError(t, err)
+		assert.NotNil(t, linksWithFile)
+
+		assert.Equal(t, uuid.UUID{}, linksWithFile.Links.originalURLs[data.ShortURL].userID)
+	})
+}
 
 func TestLinksWithFileSetLink(t *testing.T) {
 	tmpFile, err := os.CreateTemp("./", "*.test")

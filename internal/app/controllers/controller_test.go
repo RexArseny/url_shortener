@@ -33,13 +33,15 @@ func TestCreateShortLink(t *testing.T) {
 		response    bool
 	}
 	tests := []struct {
-		name    string
-		request string
-		want    want
+		name      string
+		request   string
+		duplicate bool
+		want      want
 	}{
 		{
-			name:    "empty url",
-			request: "",
+			name:      "empty url",
+			request:   "",
+			duplicate: false,
 			want: want{
 				stastusCode: http.StatusBadRequest,
 				contenType:  "text/plain; charset=utf-8",
@@ -47,8 +49,9 @@ func TestCreateShortLink(t *testing.T) {
 			},
 		},
 		{
-			name:    "invalid url",
-			request: "abc",
+			name:      "invalid url",
+			request:   "abc",
+			duplicate: false,
 			want: want{
 				stastusCode: http.StatusBadRequest,
 				contenType:  "text/plain; charset=utf-8",
@@ -56,8 +59,19 @@ func TestCreateShortLink(t *testing.T) {
 			},
 		},
 		{
-			name:    "valid url",
-			request: "https://ya.ru",
+			name:      "valid url",
+			request:   "https://ya.ru",
+			duplicate: false,
+			want: want{
+				stastusCode: http.StatusCreated,
+				contenType:  "text/plain",
+				response:    true,
+			},
+		},
+		{
+			name:      "duplicate url",
+			request:   "https://ya.ru",
+			duplicate: true,
 			want: want{
 				stastusCode: http.StatusCreated,
 				contenType:  "text/plain",
@@ -126,6 +140,21 @@ func TestCreateShortLink(t *testing.T) {
 			}
 
 			assert.NotContains(t, string(resultBody), "http")
+
+			if tt.duplicate {
+				w := httptest.NewRecorder()
+				ctx, _ := gin.CreateTestContext(w)
+				ctx.Request = httptest.NewRequest(http.MethodPost, "/", strings.NewReader(tt.request))
+
+				auth(ctx)
+
+				conntroller.CreateShortLink(ctx)
+
+				result := w.Result()
+
+				assert.Equal(t, http.StatusConflict, result.StatusCode)
+				assert.Equal(t, tt.want.contenType, result.Header.Get("Content-Type"))
+			}
 		})
 	}
 }
@@ -502,12 +531,28 @@ func TestPingDB(t *testing.T) {
 
 func TestGetShortLinksOfUser(t *testing.T) {
 	tests := []struct {
-		name string
-		want int
+		name  string
+		token bool
+		data  bool
+		want  int
 	}{
 		{
-			name: "valid data",
-			want: http.StatusNoContent,
+			name:  "valid data",
+			token: true,
+			data:  false,
+			want:  http.StatusNoContent,
+		},
+		{
+			name:  "no token",
+			token: false,
+			data:  false,
+			want:  http.StatusNoContent,
+		},
+		{
+			name:  "with data",
+			token: true,
+			data:  true,
+			want:  http.StatusOK,
 		},
 	}
 
@@ -547,16 +592,6 @@ func TestGetShortLinksOfUser(t *testing.T) {
 			tokenString, err := token.SignedString(privateKey)
 			assert.NoError(t, err)
 
-			w := httptest.NewRecorder()
-			ctx, _ := gin.CreateTestContext(w)
-			ctx.Request = httptest.NewRequest(http.MethodGet, "/api/user/urls", http.NoBody)
-			ctx.Request.AddCookie(&http.Cookie{
-				Name:   middlewares.Authorization,
-				Value:  tokenString,
-				Path:   "/",
-				Domain: "",
-			})
-
 			middleware, err := middlewares.NewMiddleware(
 				"../../../public.pem",
 				"../../../private.pem",
@@ -564,6 +599,40 @@ func TestGetShortLinksOfUser(t *testing.T) {
 			)
 			assert.NoError(t, err)
 			auth := middleware.Auth()
+
+			if tt.data {
+				w := httptest.NewRecorder()
+				ctx, _ := gin.CreateTestContext(w)
+				ctx.Request = httptest.NewRequest(
+					http.MethodPost,
+					"/api/shorten/batch",
+					strings.NewReader(`[{"correlation_id":"1","original_url":"https://ya.ru"}]`))
+
+				auth(ctx)
+
+				conntroller.CreateShortLinkJSONBatch(ctx)
+
+				result := w.Result()
+
+				for _, cookie := range result.Cookies() {
+					if cookie.Name == middlewares.Authorization {
+						tokenString = cookie.Value
+					}
+				}
+			}
+
+			w := httptest.NewRecorder()
+			ctx, _ := gin.CreateTestContext(w)
+			ctx.Request = httptest.NewRequest(http.MethodGet, "/api/user/urls", http.NoBody)
+			if tt.token {
+				ctx.Request.AddCookie(&http.Cookie{
+					Name:   middlewares.Authorization,
+					Value:  tokenString,
+					Path:   "/",
+					Domain: "",
+				})
+			}
+
 			auth(ctx)
 
 			conntroller.GetShortLinksOfUser(ctx)
@@ -580,19 +649,39 @@ func TestGetShortLinksOfUser(t *testing.T) {
 
 func TestDeleteURLs(t *testing.T) {
 	tests := []struct {
-		name string
-		file bool
-		want int
+		name    string
+		file    bool
+		token   bool
+		request string
+		want    int
 	}{
 		{
-			name: "valid url in memory",
-			file: false,
-			want: http.StatusAccepted,
+			name:    "valid url in memory",
+			file:    false,
+			token:   true,
+			request: "",
+			want:    http.StatusAccepted,
 		},
 		{
-			name: "valid url in file",
-			file: true,
-			want: http.StatusAccepted,
+			name:    "valid url in file",
+			file:    true,
+			token:   true,
+			request: "",
+			want:    http.StatusAccepted,
+		},
+		{
+			name:    "invalid data",
+			file:    false,
+			token:   true,
+			request: `{"id":"test"}`,
+			want:    http.StatusBadRequest,
+		},
+		{
+			name:    "no token",
+			file:    false,
+			token:   false,
+			request: "",
+			want:    http.StatusUnauthorized,
 		},
 	}
 
@@ -679,18 +768,24 @@ func TestDeleteURLs(t *testing.T) {
 			assert.NoError(t, err)
 			assert.NotEmpty(t, parsedURL)
 
+			requestData := `["` + path.Base(parsedURL.Path) + `"]`
+			if tt.request != "" {
+				requestData = tt.request
+			}
 			w = httptest.NewRecorder()
 			ctx, _ = gin.CreateTestContext(w)
 			ctx.Request = httptest.NewRequest(
 				http.MethodDelete,
 				"/api/user/urls",
-				strings.NewReader(`["`+path.Base(parsedURL.Path)+`"]`))
-			ctx.Request.AddCookie(&http.Cookie{
-				Name:   middlewares.Authorization,
-				Value:  tokenString,
-				Path:   "/",
-				Domain: "",
-			})
+				strings.NewReader(requestData))
+			if tt.token {
+				ctx.Request.AddCookie(&http.Cookie{
+					Name:   middlewares.Authorization,
+					Value:  tokenString,
+					Path:   "/",
+					Domain: "",
+				})
+			}
 
 			auth(ctx)
 
@@ -702,6 +797,27 @@ func TestDeleteURLs(t *testing.T) {
 			assert.NoError(t, err)
 
 			assert.Equal(t, tt.want, result.StatusCode)
+
+			if result.StatusCode == http.StatusAccepted {
+				w = httptest.NewRecorder()
+				ctx, _ = gin.CreateTestContext(w)
+				ctx.Request = httptest.NewRequest(http.MethodGet, "/:"+ID, http.NoBody)
+				ctx.Params = []gin.Param{
+					{
+						Key:   ID,
+						Value: path.Base(parsedURL.Path),
+					},
+				}
+
+				conntroller.GetShortLink(ctx)
+
+				result = w.Result()
+
+				err = result.Body.Close()
+				assert.NoError(t, err)
+
+				assert.Equal(t, http.StatusGone, result.StatusCode)
+			}
 		})
 	}
 }
