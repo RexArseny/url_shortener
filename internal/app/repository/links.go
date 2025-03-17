@@ -167,5 +167,5 @@ func (l *Links) DeleteURLs(_ context.Context, urls []string, userID uuid.UUID) e
 
 // Ping return info about connection.
 func (l *Links) Ping(_ context.Context) error {
-	return errors.New("service in memory storage mode")
+	return nil
 }

@@ -206,7 +206,7 @@ func TestPingDB(t *testing.T) {
 	)
 
 	err = interactor.PingDB(context.Background())
-	assert.Error(t, err)
+	assert.NoError(t, err)
 }
 
 func BenchmarkCreateShortLink(b *testing.B) {
