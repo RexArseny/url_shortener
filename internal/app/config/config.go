@@ -27,8 +27,8 @@ type Config struct {
 	DatabaseDSN     string `env:"DATABASE_DSN" json:"database_dsn"`
 	PublicKeyPath   string `env:"PUBLIC_KEY_PATH" json:"public_key_path"`
 	PrivateKeyPath  string `env:"PRIVATE_KEY_PATH" json:"private_key_path"`
-	EnableHTTPS     bool   `env:"ENABLE_HTTPS" json:"enable_https"`
 	Config          string `env:"CONFIG" json:"config"`
+	EnableHTTPS     bool   `env:"ENABLE_HTTPS" json:"enable_https"`
 }
 
 // Init parse values for Config from environment and flags.
