@@ -805,6 +805,8 @@ func TestDeleteURLs(t *testing.T) {
 			assert.Equal(t, tt.want, result.StatusCode)
 
 			if result.StatusCode == http.StatusAccepted {
+				time.Sleep(time.Second)
+
 				w = httptest.NewRecorder()
 				ctx, _ = gin.CreateTestContext(w)
 				ctx.Request = httptest.NewRequest(http.MethodGet, "/:"+ID, http.NoBody)
