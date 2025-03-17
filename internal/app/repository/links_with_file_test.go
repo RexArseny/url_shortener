@@ -1,3 +1,4 @@
+//nolint:dupl // dupl for tests
 package repository
 
 import (

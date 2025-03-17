@@ -14,19 +14,19 @@ func TestNewRepository(t *testing.T) {
 	logger := zap.NewNop()
 
 	t.Run("database DSN provided", func(t *testing.T) {
-		repository, close, err := NewRepository(ctx, logger, "", "invalid_dsn")
+		repository, closer, err := NewRepository(ctx, logger, "", "invalid_dsn")
 		assert.Error(t, err)
 		assert.Nil(t, repository)
-		assert.Nil(t, close)
+		assert.Nil(t, closer)
 	})
 
 	t.Run("file storage path provided", func(t *testing.T) {
-		repository, close, err := NewRepository(ctx, logger, "valid_path", "")
+		repository, closer, err := NewRepository(ctx, logger, "valid_path", "")
 		assert.NoError(t, err)
 		assert.NotNil(t, repository)
-		assert.NotNil(t, close)
+		assert.NotNil(t, closer)
 
-		err = close()
+		err = closer()
 		assert.NoError(t, err)
 
 		err = os.Remove("valid_path")
@@ -34,9 +34,9 @@ func TestNewRepository(t *testing.T) {
 	})
 
 	t.Run("no database DSN or file storage path provided", func(t *testing.T) {
-		repository, close, err := NewRepository(ctx, logger, "", "")
+		repository, closer, err := NewRepository(ctx, logger, "", "")
 		assert.NoError(t, err)
 		assert.NotNil(t, repository)
-		assert.Nil(t, close)
+		assert.Nil(t, closer)
 	})
 }

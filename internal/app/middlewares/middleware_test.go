@@ -359,7 +359,7 @@ func TestAuth(t *testing.T) {
 		invalidTokenString := "invalid.token.string"
 
 		ctx, _ := gin.CreateTestContext(httptest.NewRecorder())
-		ctx.Request = httptest.NewRequest(http.MethodGet, "/", nil)
+		ctx.Request = httptest.NewRequest(http.MethodGet, "/", http.NoBody)
 		ctx.Request.AddCookie(&http.Cookie{
 			Name:  Authorization,
 			Value: invalidTokenString,
@@ -392,7 +392,7 @@ func TestAuth(t *testing.T) {
 		assert.NoError(t, err)
 
 		ctx, _ := gin.CreateTestContext(httptest.NewRecorder())
-		ctx.Request = httptest.NewRequest(http.MethodGet, "/", nil)
+		ctx.Request = httptest.NewRequest(http.MethodGet, "/", http.NoBody)
 		ctx.Request.AddCookie(&http.Cookie{
 			Name:  Authorization,
 			Value: tokenString,
