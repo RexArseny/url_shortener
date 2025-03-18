@@ -91,7 +91,7 @@ func server() error {
 
 	if cfg.EnableHTTPS {
 		err = s.ListenAndServeTLS("", "")
-		if err != nil && errors.Is(err, http.ErrServerClosed) {
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
 			return fmt.Errorf("can not listen and serve: %w", err)
 		}
 
@@ -101,7 +101,7 @@ func server() error {
 	}
 
 	err = s.ListenAndServe()
-	if err != nil && errors.Is(err, http.ErrServerClosed) {
+	if err != nil && !errors.Is(err, http.ErrServerClosed) {
 		return fmt.Errorf("can not listen and serve: %w", err)
 	}
 
