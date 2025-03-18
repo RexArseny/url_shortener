@@ -24,6 +24,13 @@ var (
 )
 
 func main() {
+	err := server()
+	if err != nil {
+		log.Fatalf("Server error: %s", err)
+	}
+}
+
+func server() error {
 	ctx, cancel := signal.NotifyContext(
 		context.Background(),
 		syscall.SIGTERM,
@@ -33,7 +40,7 @@ func main() {
 
 	mainLogger, err := logger.InitLogger()
 	if err != nil {
-		log.Fatalf("Can not init logger: %s", err)
+		return fmt.Errorf("can not init logger: %w", err)
 	}
 	defer func() {
 		var pathErr *fs.PathError
@@ -44,7 +51,7 @@ func main() {
 
 	cfg, err := config.Init()
 	if err != nil {
-		mainLogger.Fatal("Can not init config", zap.Error(err))
+		return fmt.Errorf("can not init config: %w", err)
 	}
 
 	urlRepository, repositoryClose, err := repository.NewRepository(
@@ -54,7 +61,7 @@ func main() {
 		cfg.DatabaseDSN,
 	)
 	if err != nil {
-		mainLogger.Fatal("Can not init repository", zap.Error(err))
+		return fmt.Errorf("can not init repository: %w", err)
 	}
 	defer func() {
 		if repositoryClose != nil {
@@ -67,7 +74,7 @@ func main() {
 
 	s, err := app.NewServer(ctx, mainLogger, cfg, urlRepository)
 	if err != nil {
-		mainLogger.Fatal("Can not init server", zap.Error(err))
+		return fmt.Errorf("can not init server: %w", err)
 	}
 
 	fmt.Printf("Build version: %s\n", buildVersion)
@@ -84,17 +91,21 @@ func main() {
 
 	if cfg.EnableHTTPS {
 		err = s.ListenAndServeTLS("", "")
-		if err != nil && err != http.ErrServerClosed {
-			mainLogger.Fatal("Can not listen and serve", zap.Error(err))
+		if err != nil && errors.Is(err, http.ErrServerClosed) {
+			return fmt.Errorf("can not listen and serve: %w", err)
 		}
 
-		return
+		fmt.Println("Server shutdown gracefully")
+
+		return nil
 	}
 
 	err = s.ListenAndServe()
-	if err != nil && err != http.ErrServerClosed {
-		mainLogger.Fatal("Can not listen and serve", zap.Error(err))
+	if err != nil && errors.Is(err, http.ErrServerClosed) {
+		return fmt.Errorf("can not listen and serve: %w", err)
 	}
 
 	fmt.Println("Server shutdown gracefully")
+
+	return nil
 }
