@@ -2,8 +2,13 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"io/fs"
 	"log"
+	"net/http"
+	"os/signal"
+	"syscall"
 
 	"github.com/RexArseny/url_shortener/internal/app"
 	"github.com/RexArseny/url_shortener/internal/app/config"
@@ -19,14 +24,20 @@ var (
 )
 
 func main() {
-	ctx := context.Background()
+	ctx, cancel := signal.NotifyContext(
+		context.Background(),
+		syscall.SIGTERM,
+		syscall.SIGINT,
+		syscall.SIGQUIT)
+	defer cancel()
 
 	mainLogger, err := logger.InitLogger()
 	if err != nil {
 		log.Fatalf("Can not init logger: %s", err)
 	}
 	defer func() {
-		if err = mainLogger.Sync(); err != nil {
+		var pathErr *fs.PathError
+		if err = mainLogger.Sync(); err != nil && !errors.As(err, &pathErr) {
 			log.Fatalf("Logger sync failed: %s", err)
 		}
 	}()
@@ -63,9 +74,17 @@ func main() {
 	fmt.Printf("Build date: %s\n", buildDate)
 	fmt.Printf("Build commit: %s\n", buildCommit)
 
+	go func() {
+		<-ctx.Done()
+		err = s.Shutdown(ctx)
+		if err != nil {
+			mainLogger.Fatal("Can not shutdown server", zap.Error(err))
+		}
+	}()
+
 	if cfg.EnableHTTPS {
 		err = s.ListenAndServeTLS("", "")
-		if err != nil {
+		if err != nil && err != http.ErrServerClosed {
 			mainLogger.Fatal("Can not listen and serve", zap.Error(err))
 		}
 
@@ -73,7 +92,9 @@ func main() {
 	}
 
 	err = s.ListenAndServe()
-	if err != nil {
+	if err != nil && err != http.ErrServerClosed {
 		mainLogger.Fatal("Can not listen and serve", zap.Error(err))
 	}
+
+	fmt.Println("Server shutdown gracefully")
 }
