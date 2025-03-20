@@ -104,7 +104,7 @@ func (i *Interactor) CreateShortLinks(
 	userID uuid.UUID,
 ) ([]models.ShortenBatchResponse, error) {
 	shortURLs := make([][]string, 0, len(batch))
-	for range len(batch) {
+	for range batch {
 		urls := make([]string, 0, linkGenerationRetries)
 		for range linkGenerationRetries {
 			urls = append(urls, i.generatePath())

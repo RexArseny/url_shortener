@@ -1,6 +1,6 @@
 module github.com/RexArseny/url_shortener
 
-go 1.22.0
+go 1.24.1
 
 require (
 	github.com/caarlos0/env/v11 v11.2.2
