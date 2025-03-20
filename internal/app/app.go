@@ -2,16 +2,10 @@ package app
 
 import (
 	"context"
-	"crypto/rand"
-	"crypto/rsa"
 	"crypto/tls"
-	"crypto/x509"
-	"crypto/x509/pkix"
-	"encoding/pem"
 	"fmt"
-	"math/big"
 	"net/http"
-	"time"
+	"os"
 
 	"github.com/RexArseny/url_shortener/internal/app/config"
 	"github.com/RexArseny/url_shortener/internal/app/controllers"
@@ -22,9 +16,6 @@ import (
 	"github.com/gin-contrib/pprof"
 	"go.uber.org/zap"
 )
-
-// Number of bits of rsa key.
-const rsaKeyBits = 2048
 
 // NewServer create new server with new interactor, controller, middleware and router.
 func NewServer(
@@ -55,31 +46,16 @@ func NewServer(
 		Handler: router,
 	}
 
-	if cfg.EnableHTTPS {
-		cert := &x509.Certificate{
-			SerialNumber: big.NewInt(1),
-			Subject: pkix.Name{
-				Organization: []string{"url_shortener"},
-			},
-			NotBefore:    time.Now(),
-			NotAfter:     time.Now().AddDate(1, 0, 0),
-			SubjectKeyId: []byte{1, 2, 3, 4, 6},
-			ExtKeyUsage:  []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
-			KeyUsage:     x509.KeyUsageDigitalSignature,
-		}
-
-		priv, err := rsa.GenerateKey(rand.Reader, rsaKeyBits)
+	if cfg.EnableHTTPS && cfg.CertificatePath != "" && cfg.CertificateKeyPath != "" {
+		certBytes, err := os.ReadFile(cfg.CertificatePath)
 		if err != nil {
-			return nil, fmt.Errorf("can generate rsa key: %w", err)
+			return nil, fmt.Errorf("can not read certificate file: %w", err)
 		}
 
-		certificate, err := x509.CreateCertificate(rand.Reader, cert, cert, &priv.PublicKey, priv)
+		keyBytes, err := os.ReadFile(cfg.CertificateKeyPath)
 		if err != nil {
-			return nil, fmt.Errorf("can not create certificate: %w", err)
+			return nil, fmt.Errorf("can not read certificate key file: %w", err)
 		}
-
-		certBytes := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: certificate})
-		keyBytes := pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(priv)})
 
 		x509Cert, err := tls.X509KeyPair(certBytes, keyBytes)
 		if err != nil {
