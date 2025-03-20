@@ -30,9 +30,9 @@ type Config struct {
 	PublicKeyPath      string `env:"PUBLIC_KEY_PATH" json:"public_key_path"`
 	PrivateKeyPath     string `env:"PRIVATE_KEY_PATH" json:"private_key_path"`
 	Config             string `env:"CONFIG" json:"config"`
-	EnableHTTPS        bool   `env:"ENABLE_HTTPS" json:"enable_https"`
 	CertificatePath    string `env:"CERTIFICATE_PATH" json:"certificate_path"`
 	CertificateKeyPath string `env:"CERTIFICATE_KEY_PATH" json:"certificate_key_path"`
+	EnableHTTPS        bool   `env:"ENABLE_HTTPS" json:"enable_https"`
 }
 
 // Init parse values for Config from environment and flags.
