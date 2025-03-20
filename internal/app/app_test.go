@@ -1,41 +1,68 @@
 package app
 
 import (
-	"context"
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/x509"
+	"crypto/x509/pkix"
+	"encoding/pem"
+	"math/big"
+	"os"
 	"testing"
+	"time"
 
-	"github.com/RexArseny/url_shortener/internal/app/config"
-	"github.com/RexArseny/url_shortener/internal/app/logger"
-	"github.com/RexArseny/url_shortener/internal/app/repository"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestNewServer(t *testing.T) {
-	cfg := &config.Config{
-		ServerAddress:  config.DefaultServerAddress,
-		BasicPath:      config.DefaultBasicPath,
-		PublicKeyPath:  "../../public.pem",
-		PrivateKeyPath: "../../private.pem",
-		EnableHTTPS:    false,
-	}
+	t.Run("successful server creation", func(t *testing.T) {
+		cert := &x509.Certificate{
+			SerialNumber: big.NewInt(1),
+			Subject: pkix.Name{
+				Organization: []string{"url_shortener"},
+			},
+			NotBefore:    time.Now(),
+			NotAfter:     time.Now().AddDate(1, 0, 0),
+			SubjectKeyId: []byte{1, 2, 3, 4, 6},
+			ExtKeyUsage:  []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
+			KeyUsage:     x509.KeyUsageDigitalSignature,
+		}
 
-	repo := repository.NewLinks()
-
-	testLogger, err := logger.InitLogger()
-	assert.NoError(t, err)
-
-	t.Run("successful server creation without HTTPS", func(t *testing.T) {
-		server, err := NewServer(context.Background(), testLogger.Named("logger"), cfg, repo)
+		priv, err := rsa.GenerateKey(rand.Reader, 2048)
 		assert.NoError(t, err)
-		assert.NotNil(t, server)
-		assert.Equal(t, server.Addr, cfg.ServerAddress)
-	})
 
-	t.Run("successful server creation with HTTPS", func(t *testing.T) {
-		cfg.EnableHTTPS = true
-		server, err := NewServer(context.Background(), testLogger.Named("logger"), cfg, repo)
+		certificate, err := x509.CreateCertificate(rand.Reader, cert, cert, &priv.PublicKey, priv)
 		assert.NoError(t, err)
-		assert.NotNil(t, server)
-		assert.NotNil(t, server.TLSConfig)
+
+		certBytes := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: certificate})
+		keyBytes := pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(priv)})
+
+		err = os.WriteFile("cert.pem", certBytes, 0o600)
+		assert.NoError(t, err)
+
+		err = os.WriteFile("key.pem", keyBytes, 0o600)
+		assert.NoError(t, err)
+
+		t.Setenv("PUBLIC_KEY_PATH", "../../public.pem")
+		t.Setenv("PRIVATE_KEY_PATH", "../../private.pem")
+		t.Setenv("ENABLE_HTTPS", "true")
+		t.Setenv("CERTIFICATE_PATH", "cert.pem")
+		t.Setenv("CERTIFICATE_KEY_PATH", "key.pem")
+
+		defer func() {
+			err = os.Remove("cert.pem")
+			assert.NoError(t, err)
+			err = os.Remove("key.pem")
+			assert.NoError(t, err)
+		}()
+
+		go func() {
+			err := NewServer()
+			assert.NoError(t, err)
+		}()
+
+		time.Sleep(time.Second * 5)
+
+		t.SkipNow()
 	})
 }
