@@ -1,6 +1,6 @@
 module multichecker
 
-go 1.23
+go 1.24.1
 
 require (
 	github.com/Antonboom/nilnil v1.0.1

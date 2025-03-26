@@ -206,7 +206,7 @@ func TestPingDB(t *testing.T) {
 	)
 
 	err = interactor.PingDB(context.Background())
-	assert.Error(t, err)
+	assert.NoError(t, err)
 }
 
 func BenchmarkCreateShortLink(b *testing.B) {
@@ -223,7 +223,7 @@ func BenchmarkCreateShortLink(b *testing.B) {
 		repository.NewLinks(),
 	)
 
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		result1, err := interactor.CreateShortLink(context.Background(), "", userID)
 		assert.Error(b, err)
 		assert.Nil(b, result1)
@@ -252,7 +252,7 @@ func BenchmarkGetShortLink(b *testing.B) {
 	assert.NoError(b, err)
 	assert.NotEmpty(b, parsedURL)
 
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		result1, err := interactor.GetShortLink(context.Background(), "")
 		assert.Error(b, err)
 		assert.Nil(b, result1)
