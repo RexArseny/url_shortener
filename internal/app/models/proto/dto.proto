@@ -1,0 +1,96 @@
+syntax = "proto3";
+
+option go_package = "github.com/RexArseny/url_shortener/internal/app/models/proto";
+
+package proto;
+
+service URLShortener {
+  rpc CreateShortLink (CreateShortLinkRequest) returns (CreateShortLinkResponse) {}
+  rpc CreateShortLinkJSON (CreateShortLinkJSONRequest) returns (CreateShortLinkJSONResponse) {}
+  rpc CreateShortLinkJSONBatch (CreateShortLinkJSONBatchRequest) returns (CreateShortLinkJSONBatchResponse) {}
+  rpc GetShortLink (GetShortLinkRequest) returns (GetShortLinkResponse) {}
+  rpc GetShortLinksOfUser (GetShortLinksOfUserRequest) returns (GetShortLinksOfUserResponse) {}
+  rpc DeleteURLs (DeleteURLsRequest) returns (DeleteURLsResponse) {}
+  rpc PingDB (PingDBRequest) returns (PingDBResponse) {}
+  rpc Stats (StatsRequest) returns (StatsResponse) {}
+}
+
+message CreateShortLinkRequest {
+  string original_url = 1;
+}
+
+message CreateShortLinkResponse {
+  string short_url = 1;
+}
+
+message CreateShortLinkJSONRequest {
+  message Request {
+    string url = 1;
+  }
+  Request request = 1;
+}
+
+message CreateShortLinkJSONResponse {
+  message Response {
+    string result = 1;
+  }
+  Response response = 1;
+}
+
+message CreateShortLinkJSONBatchRequest {
+  message Request {
+    string correlation_id = 1;
+    string original_url = 2;
+  }
+  repeated Request requests = 1;
+}
+
+message CreateShortLinkJSONBatchResponse {
+  message Response {
+    string correlation_id = 1;
+    string short_url = 2;
+  }
+  repeated Response responses = 1;
+}
+
+message GetShortLinkRequest {
+  string id = 1;
+}
+
+message GetShortLinkResponse {
+  string original_url = 1;
+}
+
+message GetShortLinksOfUserRequest {
+}
+
+message GetShortLinksOfUserResponse {
+  message Response {
+    string short_url = 1;
+    string original_url = 2;
+  }
+  repeated Response responses = 1;
+}
+
+message DeleteURLsRequest {
+  repeated string urls = 1;
+}
+
+message DeleteURLsResponse {
+  string status = 1;
+}
+
+message PingDBRequest {
+}
+
+message PingDBResponse {
+  string status = 1;
+}
+
+message StatsRequest {
+}
+
+message StatsResponse {
+  uint64 urls = 1;
+  uint64 users = 2;
+}

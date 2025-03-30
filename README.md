@@ -22,3 +22,8 @@ http://localhost:8080/pkg/?m=all
 ```
 go run ./cmd/certificate_generator/certificate_generator.go
 ```
+---
+Генерация go кода на основе proto файла:
+```
+protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative .\internal\app\models\proto\dto.proto
+```
