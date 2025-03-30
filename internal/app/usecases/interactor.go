@@ -195,6 +195,16 @@ func (i *Interactor) PingDB(ctx context.Context) error {
 	return nil
 }
 
+// Stats return statistic of shortened urls and users in service.
+func (i *Interactor) Stats(ctx context.Context) (*models.Stats, error) {
+	stats, err := i.urlRepository.Stats(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("can not get stats %w", err)
+	}
+
+	return stats, nil
+}
+
 // generatePath create new short URL.
 func (i *Interactor) generatePath() string {
 	path := make([]rune, shortLinkPathLength)

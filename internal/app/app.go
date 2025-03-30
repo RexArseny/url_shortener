@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/fs"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -72,8 +73,16 @@ func NewServer() error {
 		}
 	}()
 
+	var trustedSubnet *net.IPNet
+	if cfg.TrustedSubnet != "" {
+		_, trustedSubnet, err = net.ParseCIDR(cfg.TrustedSubnet)
+		if err != nil {
+			return fmt.Errorf("can not parse cidr from trusted subnet: %w", err)
+		}
+	}
+
 	interactor := usecases.NewInteractor(ctx, mainLogger.Named("interactor"), cfg.BasicPath, urlRepository)
-	controller := controllers.NewController(mainLogger.Named("controller"), interactor)
+	controller := controllers.NewController(mainLogger.Named("controller"), interactor, trustedSubnet)
 	middleware, err := middlewares.NewMiddleware(
 		cfg.PublicKeyPath,
 		cfg.PrivateKeyPath,

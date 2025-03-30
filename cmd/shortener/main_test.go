@@ -100,7 +100,7 @@ func TestCreateShortLink(t *testing.T) {
 				cfg.BasicPath,
 				urlRepository,
 			)
-			conntroller := controllers.NewController(testLogger.Named("controller"), interactor)
+			conntroller := controllers.NewController(testLogger.Named("controller"), interactor, nil)
 			middleware, err := middlewares.NewMiddleware(
 				"../../public.pem",
 				"../../private.pem",
@@ -221,7 +221,7 @@ func TestCreateShortLinkJSON(t *testing.T) {
 				cfg.BasicPath,
 				urlRepository,
 			)
-			conntroller := controllers.NewController(testLogger.Named("controller"), interactor)
+			conntroller := controllers.NewController(testLogger.Named("controller"), interactor, nil)
 			middleware, err := middlewares.NewMiddleware(
 				"../../public.pem",
 				"../../private.pem",
@@ -343,7 +343,7 @@ func TestGetShortLink(t *testing.T) {
 				cfg.BasicPath,
 				urlRepository,
 			)
-			conntroller := controllers.NewController(testLogger.Named("controller"), interactor)
+			conntroller := controllers.NewController(testLogger.Named("controller"), interactor, nil)
 			middleware, err := middlewares.NewMiddleware(
 				"../../public.pem",
 				"../../private.pem",
