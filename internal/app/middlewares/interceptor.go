@@ -67,7 +67,10 @@ func (m *Middleware) GRPCAuth(
 			continue
 		}
 
-		claims = token.Claims.(*JWT)
+		claims, ok = token.Claims.(*JWT)
+		if ok {
+			break
+		}
 	}
 	if claims == nil {
 		return m.gRPCAuth(ctx, req, handler, md)
