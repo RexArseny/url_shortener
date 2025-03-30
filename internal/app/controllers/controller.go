@@ -131,7 +131,7 @@ func (c *Controller) CreateShortLinkJSON(ctx *gin.Context) {
 	}
 
 	if result == nil || *result == "" {
-		c.logger.Error("Short link is empty", zap.Any("request", ctx.Request))
+		c.logger.Error("Short link from json is empty", zap.Any("request", ctx.Request))
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": http.StatusText(http.StatusInternalServerError)})
 		return
 	}
@@ -202,7 +202,7 @@ func (c *Controller) GetShortLink(ctx *gin.Context) {
 	}
 
 	if result == nil || *result == "" {
-		c.logger.Error("Short link is empty", zap.Any("request", ctx.Request))
+		c.logger.Error("Original URL is empty", zap.Any("request", ctx.Request))
 		ctx.String(http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError))
 		return
 	}

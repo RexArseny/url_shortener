@@ -1,3 +1,4 @@
+//nolint:wrapcheck // errors of grpc
 package controllers
 
 import (
@@ -76,7 +77,7 @@ func (c *GRPCController) CreateShortLink(
 	}
 
 	if result == nil || *result == "" {
-		c.logger.Error("Short link is empty", zap.String("originalURL", in.OriginalUrl))
+		c.logger.Error("Short link is empty", zap.String("originalURL", in.GetOriginalUrl()))
 		return nil, status.Error(codes.Internal, codes.Internal.String())
 	}
 
@@ -125,7 +126,7 @@ func (c *GRPCController) CreateShortLinkJSON(
 	}
 
 	if result == nil || *result == "" {
-		c.logger.Error("Short link is empty", zap.String("url", in.Request.Url))
+		c.logger.Error("Short link from json is empty", zap.String("url", in.GetRequest().GetUrl()))
 		return nil, status.Error(codes.Internal, codes.Internal.String())
 	}
 
@@ -216,7 +217,7 @@ func (c *GRPCController) GetShortLink(
 	}
 
 	if result == nil || *result == "" {
-		c.logger.Error("Original URL is empty", zap.String("id", in.Id))
+		c.logger.Error("Original URL is empty", zap.String("id", in.GetId()))
 		return nil, status.Error(codes.Internal, codes.Internal.String())
 	}
 
