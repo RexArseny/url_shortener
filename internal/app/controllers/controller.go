@@ -125,7 +125,7 @@ func (c *Controller) CreateShortLinkJSON(ctx *gin.Context) {
 			ctx.JSON(http.StatusBadRequest, gin.H{"error": http.StatusText(http.StatusBadRequest)})
 			return
 		}
-		c.logger.Error("Can not create short link", zap.Error(err))
+		c.logger.Error("Can not create short link from json", zap.Error(err))
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": http.StatusText(http.StatusInternalServerError)})
 		return
 	}
