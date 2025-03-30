@@ -21,8 +21,8 @@ const ID = "id"
 // Controller is responsible for managing the network interactions of the service.
 type Controller struct {
 	logger        *zap.Logger
-	interactor    usecases.Interactor
 	trustedSubnet *net.IPNet
+	interactor    usecases.Interactor
 }
 
 // NewController create new Controller.
@@ -33,8 +33,8 @@ func NewController(
 ) Controller {
 	return Controller{
 		logger:        logger,
-		interactor:    interactor,
 		trustedSubnet: trustedSubnet,
+		interactor:    interactor,
 	}
 }
 
@@ -296,7 +296,7 @@ func (c *Controller) DeleteURLs(ctx *gin.Context) {
 	ctx.JSON(http.StatusAccepted, gin.H{"status": http.StatusText(http.StatusAccepted)})
 }
 
-// PingDB return statistic of shortened urls and users in service.
+// Stats return statistic of shortened urls and users in service.
 func (c *Controller) Stats(ctx *gin.Context) {
 	if c.trustedSubnet == nil || !c.trustedSubnet.Contains(net.ParseIP(ctx.GetHeader("X-Real-IP"))) {
 		ctx.JSON(http.StatusForbidden, gin.H{"error": http.StatusText(http.StatusForbidden)})
