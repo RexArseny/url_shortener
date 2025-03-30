@@ -37,6 +37,7 @@ func NewRouter(
 	router.GET("/api/user/urls", controller.GetShortLinksOfUser)
 	router.DELETE("/api/user/urls", controller.DeleteURLs)
 	router.GET("/ping", controller.PingDB)
+	router.GET("/api/internal/stats", controller.Stats)
 
 	return router, nil
 }

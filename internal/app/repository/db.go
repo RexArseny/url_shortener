@@ -312,6 +312,21 @@ func (d *DBRepository) Ping(ctx context.Context) error {
 	return nil
 }
 
+// Stats return statistic of shortened urls and users in service.
+func (d *DBRepository) Stats(ctx context.Context) (*models.Stats, error) {
+	var urls int
+	var users int
+	err := d.pool.QueryRow(ctx, "SELECT COUNT(DISTINCT short_url), COUNT(DISTINCT user_id) FROM urls").Scan(&urls, &users)
+	if err != nil {
+		return nil, fmt.Errorf("can not get stats: %w", err)
+	}
+
+	return &models.Stats{
+		URLs:  urls,
+		Users: users,
+	}, nil
+}
+
 // Close all connections with database.
 func (d *DBRepository) Close() {
 	d.pool.Close()

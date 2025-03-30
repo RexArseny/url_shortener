@@ -107,7 +107,7 @@ func TestCreateShortLink(t *testing.T) {
 				cfg.BasicPath,
 				urlRepository,
 			)
-			conntroller := NewController(testLogger.Named("controller"), interactor)
+			conntroller := NewController(testLogger.Named("controller"), interactor, nil)
 
 			w := httptest.NewRecorder()
 			ctx, _ := gin.CreateTestContext(w)
@@ -224,7 +224,7 @@ func TestCreateShortLinkJSON(t *testing.T) {
 				cfg.BasicPath,
 				repository.NewLinks(),
 			)
-			conntroller := NewController(testLogger.Named("controller"), interactor)
+			conntroller := NewController(testLogger.Named("controller"), interactor, nil)
 
 			w := httptest.NewRecorder()
 			ctx, _ := gin.CreateTestContext(w)
@@ -324,7 +324,7 @@ func TestCreateShortLinkJSONBatch(t *testing.T) {
 				cfg.BasicPath,
 				repository.NewLinks(),
 			)
-			conntroller := NewController(testLogger.Named("controller"), interactor)
+			conntroller := NewController(testLogger.Named("controller"), interactor, nil)
 
 			w := httptest.NewRecorder()
 			ctx, _ := gin.CreateTestContext(w)
@@ -420,7 +420,7 @@ func TestGetShortLink(t *testing.T) {
 				cfg.BasicPath,
 				repository.NewLinks(),
 			)
-			conntroller := NewController(testLogger.Named("controller"), interactor)
+			conntroller := NewController(testLogger.Named("controller"), interactor, nil)
 
 			w := httptest.NewRecorder()
 			ctx, _ := gin.CreateTestContext(w)
@@ -505,7 +505,7 @@ func TestPingDB(t *testing.T) {
 				cfg.BasicPath,
 				repository.NewLinks(),
 			)
-			conntroller := NewController(testLogger.Named("controller"), interactor)
+			conntroller := NewController(testLogger.Named("controller"), interactor, nil)
 
 			w := httptest.NewRecorder()
 			ctx, _ := gin.CreateTestContext(w)
@@ -572,7 +572,7 @@ func TestGetShortLinksOfUser(t *testing.T) {
 				cfg.BasicPath,
 				repository.NewLinks(),
 			)
-			conntroller := NewController(testLogger.Named("controller"), interactor)
+			conntroller := NewController(testLogger.Named("controller"), interactor, nil)
 
 			privateKeyFile, err := os.ReadFile("../../../private.pem")
 			assert.NoError(t, err)
@@ -731,7 +731,7 @@ func TestDeleteURLs(t *testing.T) {
 				cfg.BasicPath,
 				urlRepository,
 			)
-			conntroller := NewController(testLogger.Named("controller"), interactor)
+			conntroller := NewController(testLogger.Named("controller"), interactor, nil)
 
 			w := httptest.NewRecorder()
 			ctx, _ := gin.CreateTestContext(w)
