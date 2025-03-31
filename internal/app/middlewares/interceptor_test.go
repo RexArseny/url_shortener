@@ -30,7 +30,7 @@ func TestGRPCLogger(t *testing.T) {
 			ctx context.Context,
 			in interface{},
 		) (interface{}, error) {
-			return nil, nil
+			return new(interface{}), nil
 		}
 
 		_, err := middleware.GRPCLogger(context.Background(), nil, &grpc.UnaryServerInfo{FullMethod: "test"}, testHandler)
