@@ -112,7 +112,7 @@ func TestGRPCControllerCreateShortLink(t *testing.T) {
 				assert.NoError(t, err)
 			}
 			if tt.want.response {
-				assert.NotEmpty(t, resp.ShortUrl)
+				assert.NotEmpty(t, resp.GetShortUrl())
 			}
 		})
 	}
@@ -217,7 +217,7 @@ func TestGRPCControllerCreateShortLinkJSON(t *testing.T) {
 				assert.NoError(t, err)
 			}
 			if tt.want.response {
-				assert.NotEmpty(t, resp.Response.Result)
+				assert.NotEmpty(t, resp.GetResponse().GetResult())
 			}
 		})
 	}
@@ -334,8 +334,8 @@ func TestGRPCControllerCreateShortLinkJSONBatch(t *testing.T) {
 				assert.NoError(t, err)
 			}
 			if tt.want.response {
-				assert.NotEmpty(t, resp.Responses[0].ShortUrl)
-				assert.NotEmpty(t, resp.Responses[0].CorrelationId)
+				assert.NotEmpty(t, resp.GetResponses()[0].GetShortUrl())
+				assert.NotEmpty(t, resp.GetResponses()[0].GetCorrelationId())
 			}
 		})
 	}
@@ -411,15 +411,13 @@ func TestGRPCControllerGetShortLink(t *testing.T) {
 			})
 			if tt.want.response {
 				assert.NoError(t, err)
-			} else {
-				if !tt.want.err {
-					assert.Error(t, err)
-				}
+			} else if !tt.want.err {
+				assert.Error(t, err)
 			}
 
 			var request *pb.GetShortLinkRequest
 			if tt.request.valid {
-				parsedURL, err := url.ParseRequestURI(data.ShortUrl)
+				parsedURL, err := url.ParseRequestURI(data.GetShortUrl())
 				assert.NoError(t, err)
 				assert.NotEmpty(t, parsedURL)
 
@@ -436,7 +434,7 @@ func TestGRPCControllerGetShortLink(t *testing.T) {
 				assert.NoError(t, err)
 			}
 			if tt.want.response {
-				assert.NotEmpty(t, resp.OriginalUrl)
+				assert.NotEmpty(t, resp.GetOriginalUrl())
 			}
 		})
 	}
@@ -477,7 +475,7 @@ func TestGRPCControllerPingDB(t *testing.T) {
 			resp, err := conntroller.PingDB(ctx, &pb.PingDBRequest{})
 
 			assert.NoError(t, err)
-			assert.NotEmpty(t, resp.Status)
+			assert.NotEmpty(t, resp.GetStatus())
 		})
 	}
 }
@@ -493,13 +491,6 @@ func TestGRPCControllerGetShortLinksOfUser(t *testing.T) {
 		err     error
 	}{
 		{
-			name: "valid request",
-			request: request{
-				ctx: metadata.NewIncomingContext(context.Background(), metadata.Pairs(middlewares.UserID, testUserID.String())),
-			},
-			err: nil,
-		},
-		{
 			name: "invalid metadata",
 			request: request{
 				ctx: context.Background(),
@@ -509,7 +500,9 @@ func TestGRPCControllerGetShortLinksOfUser(t *testing.T) {
 		{
 			name: "authorization new",
 			request: request{
-				ctx: metadata.NewIncomingContext(context.Background(), metadata.Pairs(middlewares.AuthorizationNew, middlewares.AuthorizationNew)),
+				ctx: metadata.NewIncomingContext(
+					context.Background(),
+					metadata.Pairs(middlewares.AuthorizationNew, middlewares.AuthorizationNew)),
 			},
 			err: status.Errorf(codes.NotFound, "no content"),
 		},
@@ -519,6 +512,13 @@ func TestGRPCControllerGetShortLinksOfUser(t *testing.T) {
 				ctx: metadata.NewIncomingContext(context.Background(), metadata.Pairs()),
 			},
 			err: status.Error(codes.Unauthenticated, codes.Unauthenticated.String()),
+		},
+		{
+			name: "valid request",
+			request: request{
+				ctx: metadata.NewIncomingContext(context.Background(), metadata.Pairs(middlewares.UserID, testUserID.String())),
+			},
+			err: nil,
 		},
 	}
 
@@ -550,12 +550,12 @@ func TestGRPCControllerGetShortLinksOfUser(t *testing.T) {
 				OriginalUrl: "https://ya.ru",
 			})
 			assert.NoError(t, err)
-			assert.NotEmpty(t, data.ShortUrl)
+			assert.NotEmpty(t, data.GetShortUrl())
 
 			resp2, err := conntroller.GetShortLinksOfUser(tt.request.ctx, &pb.GetShortLinksOfUserRequest{})
 
 			assert.NoError(t, err)
-			assert.NotEmpty(t, resp2.Responses)
+			assert.NotEmpty(t, resp2.GetResponses())
 		})
 	}
 }
@@ -623,26 +623,26 @@ func TestGRPCControllerDeleteURLs(t *testing.T) {
 			}
 
 			assert.NoError(t, err)
-			assert.NotEmpty(t, resp1.Status)
+			assert.NotEmpty(t, resp1.GetStatus())
 
 			data, err := conntroller.CreateShortLink(tt.request.ctx, &pb.CreateShortLinkRequest{
 				OriginalUrl: "https://ya.ru",
 			})
 			assert.NoError(t, err)
-			assert.NotEmpty(t, data.ShortUrl)
+			assert.NotEmpty(t, data.GetShortUrl())
 
-			parsedURL, err := url.ParseRequestURI(data.ShortUrl)
+			parsedURL, err := url.ParseRequestURI(data.GetShortUrl())
 			assert.NoError(t, err)
 			assert.NotEmpty(t, parsedURL)
 
 			resp2, err := conntroller.DeleteURLs(tt.request.ctx, &pb.DeleteURLsRequest{Urls: []string{path.Base(parsedURL.Path)}})
 			assert.NoError(t, err)
-			assert.NotEmpty(t, resp2.Status)
+			assert.NotEmpty(t, resp2.GetStatus())
 
 			resp3, err := conntroller.GetShortLinksOfUser(tt.request.ctx, &pb.GetShortLinksOfUserRequest{})
 
 			assert.NoError(t, err)
-			assert.NotEmpty(t, resp3.Responses)
+			assert.NotEmpty(t, resp3.GetResponses())
 		})
 	}
 }
@@ -708,13 +708,13 @@ func TestGRPCControllerStats(t *testing.T) {
 				OriginalUrl: "https://ya.ru",
 			})
 			assert.NoError(t, err)
-			assert.NotEmpty(t, data.ShortUrl)
+			assert.NotEmpty(t, data.GetShortUrl())
 
 			resp2, err := conntroller.Stats(tt.request.ctx, &pb.StatsRequest{})
 
 			assert.NoError(t, err)
-			assert.NotEmpty(t, resp2.Urls)
-			assert.NotEmpty(t, resp2.Users)
+			assert.NotEmpty(t, resp2.GetUrls())
+			assert.NotEmpty(t, resp2.GetUsers())
 		})
 	}
 }
