@@ -58,7 +58,7 @@ func (c *GRPCController) CreateShortLink(
 			break
 		}
 	}
-	if userID.String() == "" || userID.String() == "00000000-0000-0000-0000-000000000000" {
+	if userID.String() == "" || userID.String() == uuid.Nil.String() {
 		return nil, status.Error(codes.Unauthenticated, codes.Unauthenticated.String())
 	}
 
@@ -100,7 +100,7 @@ func (c *GRPCController) CreateShortLinkJSON(
 			break
 		}
 	}
-	if userID.String() == "" || userID.String() == "00000000-0000-0000-0000-000000000000" {
+	if userID.String() == "" || userID.String() == uuid.Nil.String() {
 		return nil, status.Error(codes.Unauthenticated, codes.Unauthenticated.String())
 	}
 
@@ -144,7 +144,7 @@ func (c *GRPCController) CreateShortLinkJSONBatch(
 			break
 		}
 	}
-	if userID.String() == "" || userID.String() == "00000000-0000-0000-0000-000000000000" {
+	if userID.String() == "" || userID.String() == uuid.Nil.String() {
 		return nil, status.Error(codes.Unauthenticated, codes.Unauthenticated.String())
 	}
 
@@ -242,7 +242,7 @@ func (c *GRPCController) GetShortLinksOfUser(
 			break
 		}
 	}
-	if userID.String() == "" || userID.String() == "00000000-0000-0000-0000-000000000000" {
+	if userID.String() == "" || userID.String() == uuid.Nil.String() {
 		return nil, status.Error(codes.Unauthenticated, codes.Unauthenticated.String())
 	}
 
@@ -293,7 +293,7 @@ func (c *GRPCController) DeleteURLs(
 			break
 		}
 	}
-	if userID.String() == "" || userID.String() == "00000000-0000-0000-0000-000000000000" {
+	if userID.String() == "" || userID.String() == uuid.Nil.String() {
 		return nil, status.Error(codes.Unauthenticated, codes.Unauthenticated.String())
 	}
 
