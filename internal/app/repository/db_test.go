@@ -7,9 +7,19 @@ import (
 	"github.com/RexArseny/url_shortener/internal/app/logger"
 	"github.com/RexArseny/url_shortener/internal/app/models"
 	"github.com/google/uuid"
+	"github.com/jackc/pgerrcode"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/pashagolub/pgxmock/v4"
 	"github.com/stretchr/testify/assert"
 )
+
+func TestDBRepositoryNewDBRepository(t *testing.T) {
+	testLogger, err := logger.InitLogger()
+	assert.NoError(t, err)
+	db, err := NewDBRepository(context.Background(), testLogger, "")
+	assert.Error(t, err)
+	assert.Empty(t, db)
+}
 
 func TestDBRepositoryGetOriginalURL(t *testing.T) {
 	testLogger, err := logger.InitLogger()
@@ -62,6 +72,19 @@ func TestDBRepositorySetLink(t *testing.T) {
 	result, err := repo.SetLink(context.Background(), originalURL, []string{shortURL}, userID)
 	assert.NoError(t, err)
 	assert.Equal(t, shortURL, *result)
+
+	for range 5 {
+		mock.ExpectQuery("INSERT INTO urls").
+			WithArgs(shortURL, originalURL, userID).
+			WillReturnError(&pgconn.PgError{
+				Code:           pgerrcode.UniqueViolation,
+				ConstraintName: "short_url_constraint",
+			})
+	}
+
+	result, err = repo.SetLink(context.Background(), originalURL, []string{shortURL}, userID)
+	assert.Error(t, err)
+	assert.Empty(t, result)
 }
 
 func TestDBRepositorySetLinks(t *testing.T) {
@@ -78,22 +101,22 @@ func TestDBRepositorySetLinks(t *testing.T) {
 	}
 
 	batch := []models.ShortenBatchRequest{
-		{OriginalURL: "http://example.com"},
+		{OriginalURL: "http://example2.com"},
 	}
-	shortURLs := [][]string{{"abc123"}}
+	shortURLs := [][]string{{"abc1234"}, {"abc123"}}
 	userID := uuid.New()
 
 	mock.ExpectBegin()
 	mock.ExpectQuery("SELECT short_url, original_url FROM urls WHERE original_url = ANY").
 		WithArgs(pgxmock.AnyArg()).
-		WillReturnRows(pgxmock.NewRows([]string{"short_url", "original_url"}))
+		WillReturnRows(pgxmock.NewRows([]string{"short_url", "original_url"}).AddRow("abc123", "http://example.com"))
 	mock.ExpectBatch().ExpectExec("INSERT INTO urls").
 		WithArgs(shortURLs[0][0], batch[0].OriginalURL, userID).
 		WillReturnResult(pgxmock.NewResult("INSERT", 1))
 	mock.ExpectCommit()
 
 	result, err := repo.SetLinks(context.Background(), batch, shortURLs, userID)
-	assert.NoError(t, err)
+	assert.Error(t, err)
 	assert.NotNil(t, result)
 }
 
@@ -192,6 +215,28 @@ func TestDBRepositoryPing(t *testing.T) {
 
 	err = repo.Ping(context.Background())
 	assert.NoError(t, err)
+}
+
+func TestDBRepositoryStats(t *testing.T) {
+	testLogger, err := logger.InitLogger()
+	assert.NoError(t, err)
+
+	mock, err := pgxmock.NewPool()
+	assert.NoError(t, err)
+	defer mock.Close()
+
+	repo := &DBRepository{
+		logger: testLogger.Named("repository"),
+		pool:   mock,
+	}
+
+	mock.ExpectQuery("SELECT").
+		WillReturnRows(pgxmock.NewRows([]string{"count_short_url", "count_user_id"}).
+			AddRow(1, 1))
+
+	stats, err := repo.Stats(context.Background())
+	assert.NoError(t, err)
+	assert.NotEmpty(t, stats)
 }
 
 func TestDBRepositoryClose(t *testing.T) {

@@ -182,10 +182,6 @@ func TestLinksWithFileSetLink(t *testing.T) {
 	assert.NoError(t, err)
 
 	defer func() {
-		err = linksWithFile.Close()
-		assert.NoError(t, err)
-		err = tmpFile.Close()
-		assert.NoError(t, err)
 		err = os.Remove(tmpFile.Name())
 		assert.NoError(t, err)
 	}()
@@ -202,6 +198,19 @@ func TestLinksWithFileSetLink(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Contains(t, string(fileContent), originalURL)
 	assert.Contains(t, string(fileContent), shortURLs[0])
+
+	result, err = linksWithFile.SetLink(context.Background(), originalURL, shortURLs, userID)
+	assert.Error(t, err)
+	assert.Equal(t, shortURLs[0], *result)
+
+	err = linksWithFile.Close()
+	assert.NoError(t, err)
+	err = tmpFile.Close()
+	assert.NoError(t, err)
+
+	result, err = linksWithFile.SetLink(context.Background(), originalURL, shortURLs, userID)
+	assert.Error(t, err)
+	assert.NotEmpty(t, result)
 }
 
 func TestSetLinks(t *testing.T) {
@@ -235,6 +244,28 @@ func TestSetLinks(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Contains(t, string(fileContent), batch[0].OriginalURL)
 	assert.Contains(t, string(fileContent), batch[1].OriginalURL)
+
+	batch2 := []models.ShortenBatchRequest{
+		{OriginalURL: "abc"},
+	}
+	shortURLs2 := [][]string{{"abc123"}}
+
+	result, err = linksWithFile.SetLinks(context.Background(), batch2, shortURLs2, userID)
+	assert.Error(t, err)
+	assert.Empty(t, result)
+
+	result, err = linksWithFile.SetLinks(context.Background(), batch, shortURLs, userID)
+	assert.Error(t, err)
+	assert.Equal(t, []string{"abc123", "def456"}, result)
+
+	batch3 := []models.ShortenBatchRequest{
+		{OriginalURL: "http://example1.com"},
+	}
+	shortURLs3 := [][]string{{"abc123", "abc123", "abc123", "abc123", "abc123"}}
+
+	result, err = linksWithFile.SetLinks(context.Background(), batch3, shortURLs3, userID)
+	assert.Error(t, err)
+	assert.Empty(t, result)
 }
 
 func TestDeleteURLs(t *testing.T) {

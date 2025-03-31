@@ -58,17 +58,12 @@ func (c *GRPCController) CreateShortLink(
 			break
 		}
 	}
-	if userID.String() == "" {
+	if userID.String() == "" || userID.String() == "00000000-0000-0000-0000-000000000000" {
 		return nil, status.Error(codes.Unauthenticated, codes.Unauthenticated.String())
 	}
 
 	result, err := c.interactor.CreateShortLink(ctx, in.GetOriginalUrl(), userID)
 	if err != nil {
-		if errors.Is(err, repository.ErrOriginalURLUniqueViolation) && result != nil {
-			return &pb.CreateShortLinkResponse{
-				ShortUrl: *result,
-			}, nil
-		}
 		if errors.Is(err, repository.ErrInvalidURL) {
 			return nil, status.Error(codes.InvalidArgument, codes.InvalidArgument.String())
 		}
@@ -105,19 +100,12 @@ func (c *GRPCController) CreateShortLinkJSON(
 			break
 		}
 	}
-	if userID.String() == "" {
+	if userID.String() == "" || userID.String() == "00000000-0000-0000-0000-000000000000" {
 		return nil, status.Error(codes.Unauthenticated, codes.Unauthenticated.String())
 	}
 
 	result, err := c.interactor.CreateShortLink(ctx, in.GetRequest().GetUrl(), userID)
 	if err != nil {
-		if errors.Is(err, repository.ErrOriginalURLUniqueViolation) && result != nil {
-			return &pb.CreateShortLinkJSONResponse{
-				Response: &pb.CreateShortLinkJSONResponse_Response{
-					Result: *result,
-				},
-			}, nil
-		}
 		if errors.Is(err, repository.ErrInvalidURL) {
 			return nil, status.Error(codes.InvalidArgument, codes.InvalidArgument.String())
 		}
@@ -156,7 +144,7 @@ func (c *GRPCController) CreateShortLinkJSONBatch(
 			break
 		}
 	}
-	if userID.String() == "" {
+	if userID.String() == "" || userID.String() == "00000000-0000-0000-0000-000000000000" {
 		return nil, status.Error(codes.Unauthenticated, codes.Unauthenticated.String())
 	}
 
@@ -171,18 +159,6 @@ func (c *GRPCController) CreateShortLinkJSONBatch(
 
 	result, err := c.interactor.CreateShortLinks(ctx, request, userID)
 	if err != nil {
-		if errors.Is(err, repository.ErrOriginalURLUniqueViolation) && result != nil {
-			response := make([]*pb.CreateShortLinkJSONBatchResponse_Response, 0, len(result))
-			for i := range result {
-				response = append(response, &pb.CreateShortLinkJSONBatchResponse_Response{
-					CorrelationId: result[i].CorrelationID,
-					ShortUrl:      result[i].ShortURL,
-				})
-			}
-			return &pb.CreateShortLinkJSONBatchResponse{
-				Responses: response,
-			}, nil
-		}
 		if errors.Is(err, repository.ErrInvalidURL) {
 			return nil, status.Error(codes.InvalidArgument, codes.InvalidArgument.String())
 		}
@@ -266,7 +242,7 @@ func (c *GRPCController) GetShortLinksOfUser(
 			break
 		}
 	}
-	if userID.String() == "" {
+	if userID.String() == "" || userID.String() == "00000000-0000-0000-0000-000000000000" {
 		return nil, status.Error(codes.Unauthenticated, codes.Unauthenticated.String())
 	}
 
@@ -317,7 +293,7 @@ func (c *GRPCController) DeleteURLs(
 			break
 		}
 	}
-	if userID.String() == "" {
+	if userID.String() == "" || userID.String() == "00000000-0000-0000-0000-000000000000" {
 		return nil, status.Error(codes.Unauthenticated, codes.Unauthenticated.String())
 	}
 

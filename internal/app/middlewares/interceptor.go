@@ -79,7 +79,7 @@ func (m *Middleware) GRPCAuth(
 	md.Set(UserID, []string{claims.UserID.String()}...)
 	md.Set(AuthorizationNew, []string{}...)
 
-	metadata.NewOutgoingContext(ctx, md)
+	ctx = metadata.NewIncomingContext(ctx, md)
 
 	return handler(ctx, req)
 }
@@ -123,7 +123,7 @@ func (m *Middleware) gRPCAuth(
 	md.Set(UserID, []string{userID.String()}...)
 	md.Set(AuthorizationNew, []string{AuthorizationNew}...)
 
-	metadata.NewOutgoingContext(ctx, md)
+	ctx = metadata.NewIncomingContext(ctx, md)
 
 	return handler(ctx, req)
 }

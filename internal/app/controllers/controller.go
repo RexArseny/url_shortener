@@ -91,12 +91,12 @@ func (c *Controller) CreateShortLink(ctx *gin.Context) {
 func (c *Controller) CreateShortLinkJSON(ctx *gin.Context) {
 	tokenValue, ok := ctx.Get(middlewares.Authorization)
 	if !ok {
-		ctx.String(http.StatusBadRequest, http.StatusText(http.StatusBadRequest))
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": http.StatusText(http.StatusBadRequest)})
 		return
 	}
 	token, ok := tokenValue.(*middlewares.JWT)
 	if !ok {
-		ctx.String(http.StatusBadRequest, http.StatusText(http.StatusBadRequest))
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": http.StatusText(http.StatusBadRequest)})
 		return
 	}
 
@@ -147,12 +147,12 @@ func (c *Controller) CreateShortLinkJSON(ctx *gin.Context) {
 func (c *Controller) CreateShortLinkJSONBatch(ctx *gin.Context) {
 	tokenValue, ok := ctx.Get(middlewares.Authorization)
 	if !ok {
-		ctx.String(http.StatusBadRequest, http.StatusText(http.StatusBadRequest))
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": http.StatusText(http.StatusBadRequest)})
 		return
 	}
 	token, ok := tokenValue.(*middlewares.JWT)
 	if !ok {
-		ctx.String(http.StatusBadRequest, http.StatusText(http.StatusBadRequest))
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": http.StatusText(http.StatusBadRequest)})
 		return
 	}
 
@@ -231,12 +231,12 @@ func (c *Controller) GetShortLinksOfUser(ctx *gin.Context) {
 	}
 	tokenValue, ok := ctx.Get(middlewares.Authorization)
 	if !ok {
-		ctx.String(http.StatusBadRequest, http.StatusText(http.StatusBadRequest))
+		ctx.JSON(http.StatusNoContent, gin.H{"error": http.StatusText(http.StatusNoContent)})
 		return
 	}
 	token, ok := tokenValue.(*middlewares.JWT)
 	if !ok {
-		ctx.String(http.StatusBadRequest, http.StatusText(http.StatusBadRequest))
+		ctx.JSON(http.StatusNoContent, gin.H{"error": http.StatusText(http.StatusNoContent)})
 		return
 	}
 
@@ -264,12 +264,12 @@ func (c *Controller) DeleteURLs(ctx *gin.Context) {
 	}
 	tokenValue, ok := ctx.Get(middlewares.Authorization)
 	if !ok {
-		ctx.String(http.StatusBadRequest, http.StatusText(http.StatusBadRequest))
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": http.StatusText(http.StatusUnauthorized)})
 		return
 	}
 	token, ok := tokenValue.(*middlewares.JWT)
 	if !ok {
-		ctx.String(http.StatusBadRequest, http.StatusText(http.StatusBadRequest))
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": http.StatusText(http.StatusUnauthorized)})
 		return
 	}
 

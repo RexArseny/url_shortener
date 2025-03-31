@@ -2,7 +2,7 @@ URL shortener
 ---
 Расчет общего тестового покрытия:
 ```
-go test --coverprofile=coverage.out ./...
+go test --coverprofile=coverage.out ./cmd/shortener ./internal/app ./internal/app/config ./internal/app/controllers ./internal/app/logger ./internal/app/middlewares ./internal/app/models ./internal/app/repository ./internal/app/routers ./internal/app/usecases
 go tool cover --func=coverage.out
 ```
 ---
