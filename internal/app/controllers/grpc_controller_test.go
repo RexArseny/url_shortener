@@ -573,7 +573,9 @@ func TestGRPCControllerDeleteURLs(t *testing.T) {
 		{
 			name: "valid request",
 			request: request{
-				ctx: metadata.NewIncomingContext(context.Background(), metadata.Pairs(middlewares.UserID, testUserID.String())),
+				ctx: metadata.NewIncomingContext(
+					context.Background(),
+					metadata.Pairs(middlewares.UserID, testUserID.String())),
 			},
 			err: nil,
 		},
@@ -587,7 +589,9 @@ func TestGRPCControllerDeleteURLs(t *testing.T) {
 		{
 			name: "authorization new",
 			request: request{
-				ctx: metadata.NewIncomingContext(context.Background(), metadata.Pairs(middlewares.AuthorizationNew, middlewares.AuthorizationNew)),
+				ctx: metadata.NewIncomingContext(
+					context.Background(),
+					metadata.Pairs(middlewares.AuthorizationNew, middlewares.AuthorizationNew)),
 			},
 			err: status.Errorf(codes.NotFound, "no content"),
 		},
@@ -635,7 +639,9 @@ func TestGRPCControllerDeleteURLs(t *testing.T) {
 			assert.NoError(t, err)
 			assert.NotEmpty(t, parsedURL)
 
-			resp2, err := conntroller.DeleteURLs(tt.request.ctx, &pb.DeleteURLsRequest{Urls: []string{path.Base(parsedURL.Path)}})
+			resp2, err := conntroller.DeleteURLs(
+				tt.request.ctx,
+				&pb.DeleteURLsRequest{Urls: []string{path.Base(parsedURL.Path)}})
 			assert.NoError(t, err)
 			assert.NotEmpty(t, resp2.GetStatus())
 
@@ -660,14 +666,18 @@ func TestGRPCControllerStats(t *testing.T) {
 		{
 			name: "valid request",
 			request: request{
-				ctx: metadata.NewIncomingContext(context.Background(), metadata.Pairs(middlewares.UserID, testUserID.String(), "X-Real-IP", "127.0.0.1")),
+				ctx: metadata.NewIncomingContext(
+					context.Background(),
+					metadata.Pairs(middlewares.UserID, testUserID.String(), "X-Real-IP", "127.0.0.1")),
 			},
 			err: nil,
 		},
 		{
 			name: "invalid request",
 			request: request{
-				ctx: metadata.NewIncomingContext(context.Background(), metadata.Pairs(middlewares.UserID, testUserID.String(), "X-Real-IP", "128.0.0.1")),
+				ctx: metadata.NewIncomingContext(
+					context.Background(),
+					metadata.Pairs(middlewares.UserID, testUserID.String(), "X-Real-IP", "128.0.0.1")),
 			},
 			err: status.Error(codes.PermissionDenied, codes.PermissionDenied.String()),
 		},

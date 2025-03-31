@@ -90,7 +90,7 @@ func TestGRPCAuth(t *testing.T) {
 			}
 			assert.Equal(t, userID.String(), userIDVar.String())
 
-			return nil, nil
+			return new(interface{}), nil
 		}
 
 		claims := &JWT{
@@ -141,7 +141,7 @@ func TestGRPCAuth(t *testing.T) {
 			ctx context.Context,
 			in interface{},
 		) (interface{}, error) {
-			return nil, nil
+			return new(interface{}), nil
 		}
 
 		ctx := metadata.NewIncomingContext(context.Background(), nil)
