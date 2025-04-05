@@ -1,4 +1,4 @@
-//nolint:containedctx // used for tests
+//nolint:containedctx,dupl // used for tests
 package controllers
 
 import (
