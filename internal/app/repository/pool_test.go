@@ -6,9 +6,18 @@ import (
 	"testing"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/pashagolub/pgxmock/v4"
 	"github.com/stretchr/testify/assert"
 )
+
+func TestNewPool(t *testing.T) {
+	t.Run("error new pool", func(t *testing.T) {
+		pool, err := NewPool(context.Background(), "")
+		assert.NoError(t, err)
+		assert.NotEmpty(t, pool)
+	})
+}
 
 func TestRowScan(t *testing.T) {
 	mockPool, err := pgxmock.NewPool()
@@ -51,6 +60,29 @@ func TestRowScan(t *testing.T) {
 		err := wrappedRow.Scan(&result)
 		assert.NoError(t, err)
 		assert.Equal(t, 1, result)
+	})
+}
+
+func TestQueryRow(t *testing.T) {
+	t.Run("error query row", func(t *testing.T) {
+		ctx := context.Background()
+		pgxpoolVar, err := pgxpool.New(ctx, "")
+		assert.NoError(t, err)
+		pool := Pool{Pool: pgxpoolVar}
+		row := pool.QueryRow(ctx, "")
+		assert.NotEmpty(t, row)
+	})
+}
+
+func TestBegin(t *testing.T) {
+	t.Run("error begin", func(t *testing.T) {
+		ctx := context.Background()
+		pgxpoolVar, err := pgxpool.New(ctx, "")
+		assert.NoError(t, err)
+		pool := Pool{Pool: pgxpoolVar}
+		tx, err := pool.Begin(ctx)
+		assert.Error(t, err)
+		assert.Empty(t, tx)
 	})
 }
 
@@ -156,5 +188,16 @@ func TestBatchResultsExec(t *testing.T) {
 
 		err = wrappedTx.Commit(ctx)
 		assert.NoError(t, err)
+	})
+}
+
+func TestPing(t *testing.T) {
+	t.Run("error ping", func(t *testing.T) {
+		ctx := context.Background()
+		pgxpoolVar, err := pgxpool.New(ctx, "")
+		assert.NoError(t, err)
+		pool := Pool{Pool: pgxpoolVar}
+		err = pool.Ping(ctx)
+		assert.Error(t, err)
 	})
 }

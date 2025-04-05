@@ -46,6 +46,7 @@ type Repository interface {
 		userID uuid.UUID,
 	) error
 	Ping(ctx context.Context) error
+	Stats(ctx context.Context) (*models.Stats, error)
 }
 
 // Batch is a model for bates of URLs.

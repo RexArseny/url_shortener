@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/fs"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -16,11 +17,14 @@ import (
 	"github.com/RexArseny/url_shortener/internal/app/controllers"
 	"github.com/RexArseny/url_shortener/internal/app/logger"
 	"github.com/RexArseny/url_shortener/internal/app/middlewares"
+	pb "github.com/RexArseny/url_shortener/internal/app/models/proto"
 	"github.com/RexArseny/url_shortener/internal/app/repository"
 	"github.com/RexArseny/url_shortener/internal/app/routers"
 	"github.com/RexArseny/url_shortener/internal/app/usecases"
 	"github.com/gin-contrib/pprof"
 	"go.uber.org/zap"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 )
 
 var (
@@ -72,8 +76,16 @@ func NewServer() error {
 		}
 	}()
 
+	var trustedSubnet *net.IPNet
+	if cfg.TrustedSubnet != "" {
+		_, trustedSubnet, err = net.ParseCIDR(cfg.TrustedSubnet)
+		if err != nil {
+			return fmt.Errorf("can not parse cidr from trusted subnet: %w", err)
+		}
+	}
+
 	interactor := usecases.NewInteractor(ctx, mainLogger.Named("interactor"), cfg.BasicPath, urlRepository)
-	controller := controllers.NewController(mainLogger.Named("controller"), interactor)
+	controller := controllers.NewController(mainLogger.Named("controller"), interactor, trustedSubnet)
 	middleware, err := middlewares.NewMiddleware(
 		cfg.PublicKeyPath,
 		cfg.PrivateKeyPath,
@@ -93,6 +105,11 @@ func NewServer() error {
 		Addr:    cfg.ServerAddress,
 		Handler: router,
 	}
+
+	grpcServerOpts := []grpc.ServerOption{grpc.ChainUnaryInterceptor(
+		middleware.GRPCLogger,
+		middleware.GRPCAuth,
+	)}
 
 	if cfg.EnableHTTPS && cfg.CertificatePath != "" && cfg.CertificateKeyPath != "" {
 		certBytes, err := os.ReadFile(cfg.CertificatePath)
@@ -114,7 +131,26 @@ func NewServer() error {
 			Certificates: []tls.Certificate{x509Cert},
 			MinVersion:   tls.VersionTLS13,
 		}
+
+		grpcServerOpts = append(grpcServerOpts, grpc.Creds(credentials.NewServerTLSFromCert(&x509Cert)))
 	}
+
+	listener, err := net.Listen("tcp", cfg.GRPCServerAddress)
+	if err != nil {
+		return fmt.Errorf("can not init listener: %w", err)
+	}
+	defer func() {
+		err = listener.Close()
+		if err != nil {
+			mainLogger.Fatal("Can not close listener", zap.Error(err))
+		}
+	}()
+
+	grpcController := controllers.NewGRPCController(mainLogger.Named("grpccontroller"), interactor, trustedSubnet)
+
+	grpcServer := grpc.NewServer(grpcServerOpts...)
+
+	pb.RegisterURLShortenerServer(grpcServer, &grpcController)
 
 	fmt.Printf("Build version: %s\n", buildVersion)
 	fmt.Printf("Build date: %s\n", buildDate)
@@ -125,6 +161,14 @@ func NewServer() error {
 		err = server.Shutdown(ctx)
 		if err != nil {
 			mainLogger.Fatal("Can not shutdown server", zap.Error(err))
+		}
+		grpcServer.GracefulStop()
+	}()
+
+	go func() {
+		err := grpcServer.Serve(listener)
+		if err != nil {
+			mainLogger.Fatal("Can not serve grpc", zap.Error(err))
 		}
 	}()
 

@@ -1,0 +1,11 @@
+edition = "2023";
+
+option go_package = "github.com/RexArseny/url_shortener/internal/app/models/proto/model";
+option features.(pb.go).api_level = API_OPAQUE;
+
+package proto.model;
+import "google/protobuf/go_features.proto";
+
+message Status {
+  string status = 1;
+}

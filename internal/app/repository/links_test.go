@@ -172,3 +172,19 @@ func TestLinksPing(t *testing.T) {
 	err := links.Ping(context.Background())
 	assert.NoError(t, err)
 }
+
+func TestLinksStats(t *testing.T) {
+	links := NewLinks()
+
+	userID := uuid.New()
+	shortURL := "abc123"
+	links.originalURLs[shortURL] = ShortlURLInfo{
+		originalURL: "http://example.com",
+		userID:      userID,
+		deleted:     false,
+	}
+
+	stats, err := links.Stats(context.Background())
+	assert.NoError(t, err)
+	assert.NotEmpty(t, stats)
+}

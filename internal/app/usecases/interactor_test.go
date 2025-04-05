@@ -209,6 +209,29 @@ func TestPingDB(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+func TestStats(t *testing.T) {
+	ctx := context.Background()
+
+	testLogger, err := logger.InitLogger()
+	assert.NoError(t, err)
+
+	userID := uuid.New()
+	interactor := NewInteractor(
+		ctx,
+		testLogger.Named("interactor"),
+		config.DefaultBasicPath,
+		repository.NewLinks(),
+	)
+
+	link, err := interactor.CreateShortLink(context.Background(), "https://ya.ru", userID)
+	assert.NoError(t, err)
+	assert.NotEmpty(t, link)
+
+	stats, err := interactor.Stats(context.Background())
+	assert.NoError(t, err)
+	assert.NotEmpty(t, stats)
+}
+
 func BenchmarkCreateShortLink(b *testing.B) {
 	ctx := context.Background()
 
