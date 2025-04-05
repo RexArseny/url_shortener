@@ -2,12 +2,13 @@
 // versions:
 // - protoc-gen-go-grpc v1.5.1
 // - protoc             v6.30.2
-// source: internal/app/models/proto/dto.proto
+// source: server.proto
 
 package proto
 
 import (
 	context "context"
+	model "github.com/RexArseny/url_shortener/internal/app/models/proto/model"
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
@@ -33,14 +34,14 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type URLShortenerClient interface {
-	CreateShortLink(ctx context.Context, in *CreateShortLinkRequest, opts ...grpc.CallOption) (*CreateShortLinkResponse, error)
-	CreateShortLinkJSON(ctx context.Context, in *CreateShortLinkJSONRequest, opts ...grpc.CallOption) (*CreateShortLinkJSONResponse, error)
-	CreateShortLinkJSONBatch(ctx context.Context, in *CreateShortLinkJSONBatchRequest, opts ...grpc.CallOption) (*CreateShortLinkJSONBatchResponse, error)
-	GetShortLink(ctx context.Context, in *GetShortLinkRequest, opts ...grpc.CallOption) (*GetShortLinkResponse, error)
-	GetShortLinksOfUser(ctx context.Context, in *GetShortLinksOfUserRequest, opts ...grpc.CallOption) (*GetShortLinksOfUserResponse, error)
-	DeleteURLs(ctx context.Context, in *DeleteURLsRequest, opts ...grpc.CallOption) (*DeleteURLsResponse, error)
-	PingDB(ctx context.Context, in *PingDBRequest, opts ...grpc.CallOption) (*PingDBResponse, error)
-	Stats(ctx context.Context, in *StatsRequest, opts ...grpc.CallOption) (*StatsResponse, error)
+	CreateShortLink(ctx context.Context, in *model.CreateShortLinkRequest, opts ...grpc.CallOption) (*model.CreateShortLinkResponse, error)
+	CreateShortLinkJSON(ctx context.Context, in *model.CreateShortLinkJSONRequest, opts ...grpc.CallOption) (*model.CreateShortLinkJSONResponse, error)
+	CreateShortLinkJSONBatch(ctx context.Context, in *model.CreateShortLinkJSONBatchRequest, opts ...grpc.CallOption) (*model.CreateShortLinkJSONBatchResponse, error)
+	GetShortLink(ctx context.Context, in *model.GetShortLinkRequest, opts ...grpc.CallOption) (*model.GetShortLinkResponse, error)
+	GetShortLinksOfUser(ctx context.Context, in *model.GetShortLinksOfUserRequest, opts ...grpc.CallOption) (*model.GetShortLinksOfUserResponse, error)
+	DeleteURLs(ctx context.Context, in *model.DeleteURLsRequest, opts ...grpc.CallOption) (*model.DeleteURLsResponse, error)
+	PingDB(ctx context.Context, in *model.PingDBRequest, opts ...grpc.CallOption) (*model.PingDBResponse, error)
+	Stats(ctx context.Context, in *model.StatsRequest, opts ...grpc.CallOption) (*model.StatsResponse, error)
 }
 
 type uRLShortenerClient struct {
@@ -51,9 +52,9 @@ func NewURLShortenerClient(cc grpc.ClientConnInterface) URLShortenerClient {
 	return &uRLShortenerClient{cc}
 }
 
-func (c *uRLShortenerClient) CreateShortLink(ctx context.Context, in *CreateShortLinkRequest, opts ...grpc.CallOption) (*CreateShortLinkResponse, error) {
+func (c *uRLShortenerClient) CreateShortLink(ctx context.Context, in *model.CreateShortLinkRequest, opts ...grpc.CallOption) (*model.CreateShortLinkResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(CreateShortLinkResponse)
+	out := new(model.CreateShortLinkResponse)
 	err := c.cc.Invoke(ctx, URLShortener_CreateShortLink_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -61,9 +62,9 @@ func (c *uRLShortenerClient) CreateShortLink(ctx context.Context, in *CreateShor
 	return out, nil
 }
 
-func (c *uRLShortenerClient) CreateShortLinkJSON(ctx context.Context, in *CreateShortLinkJSONRequest, opts ...grpc.CallOption) (*CreateShortLinkJSONResponse, error) {
+func (c *uRLShortenerClient) CreateShortLinkJSON(ctx context.Context, in *model.CreateShortLinkJSONRequest, opts ...grpc.CallOption) (*model.CreateShortLinkJSONResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(CreateShortLinkJSONResponse)
+	out := new(model.CreateShortLinkJSONResponse)
 	err := c.cc.Invoke(ctx, URLShortener_CreateShortLinkJSON_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -71,9 +72,9 @@ func (c *uRLShortenerClient) CreateShortLinkJSON(ctx context.Context, in *Create
 	return out, nil
 }
 
-func (c *uRLShortenerClient) CreateShortLinkJSONBatch(ctx context.Context, in *CreateShortLinkJSONBatchRequest, opts ...grpc.CallOption) (*CreateShortLinkJSONBatchResponse, error) {
+func (c *uRLShortenerClient) CreateShortLinkJSONBatch(ctx context.Context, in *model.CreateShortLinkJSONBatchRequest, opts ...grpc.CallOption) (*model.CreateShortLinkJSONBatchResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(CreateShortLinkJSONBatchResponse)
+	out := new(model.CreateShortLinkJSONBatchResponse)
 	err := c.cc.Invoke(ctx, URLShortener_CreateShortLinkJSONBatch_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -81,9 +82,9 @@ func (c *uRLShortenerClient) CreateShortLinkJSONBatch(ctx context.Context, in *C
 	return out, nil
 }
 
-func (c *uRLShortenerClient) GetShortLink(ctx context.Context, in *GetShortLinkRequest, opts ...grpc.CallOption) (*GetShortLinkResponse, error) {
+func (c *uRLShortenerClient) GetShortLink(ctx context.Context, in *model.GetShortLinkRequest, opts ...grpc.CallOption) (*model.GetShortLinkResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(GetShortLinkResponse)
+	out := new(model.GetShortLinkResponse)
 	err := c.cc.Invoke(ctx, URLShortener_GetShortLink_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -91,9 +92,9 @@ func (c *uRLShortenerClient) GetShortLink(ctx context.Context, in *GetShortLinkR
 	return out, nil
 }
 
-func (c *uRLShortenerClient) GetShortLinksOfUser(ctx context.Context, in *GetShortLinksOfUserRequest, opts ...grpc.CallOption) (*GetShortLinksOfUserResponse, error) {
+func (c *uRLShortenerClient) GetShortLinksOfUser(ctx context.Context, in *model.GetShortLinksOfUserRequest, opts ...grpc.CallOption) (*model.GetShortLinksOfUserResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(GetShortLinksOfUserResponse)
+	out := new(model.GetShortLinksOfUserResponse)
 	err := c.cc.Invoke(ctx, URLShortener_GetShortLinksOfUser_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -101,9 +102,9 @@ func (c *uRLShortenerClient) GetShortLinksOfUser(ctx context.Context, in *GetSho
 	return out, nil
 }
 
-func (c *uRLShortenerClient) DeleteURLs(ctx context.Context, in *DeleteURLsRequest, opts ...grpc.CallOption) (*DeleteURLsResponse, error) {
+func (c *uRLShortenerClient) DeleteURLs(ctx context.Context, in *model.DeleteURLsRequest, opts ...grpc.CallOption) (*model.DeleteURLsResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(DeleteURLsResponse)
+	out := new(model.DeleteURLsResponse)
 	err := c.cc.Invoke(ctx, URLShortener_DeleteURLs_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -111,9 +112,9 @@ func (c *uRLShortenerClient) DeleteURLs(ctx context.Context, in *DeleteURLsReque
 	return out, nil
 }
 
-func (c *uRLShortenerClient) PingDB(ctx context.Context, in *PingDBRequest, opts ...grpc.CallOption) (*PingDBResponse, error) {
+func (c *uRLShortenerClient) PingDB(ctx context.Context, in *model.PingDBRequest, opts ...grpc.CallOption) (*model.PingDBResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(PingDBResponse)
+	out := new(model.PingDBResponse)
 	err := c.cc.Invoke(ctx, URLShortener_PingDB_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -121,9 +122,9 @@ func (c *uRLShortenerClient) PingDB(ctx context.Context, in *PingDBRequest, opts
 	return out, nil
 }
 
-func (c *uRLShortenerClient) Stats(ctx context.Context, in *StatsRequest, opts ...grpc.CallOption) (*StatsResponse, error) {
+func (c *uRLShortenerClient) Stats(ctx context.Context, in *model.StatsRequest, opts ...grpc.CallOption) (*model.StatsResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(StatsResponse)
+	out := new(model.StatsResponse)
 	err := c.cc.Invoke(ctx, URLShortener_Stats_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -135,14 +136,14 @@ func (c *uRLShortenerClient) Stats(ctx context.Context, in *StatsRequest, opts .
 // All implementations must embed UnimplementedURLShortenerServer
 // for forward compatibility.
 type URLShortenerServer interface {
-	CreateShortLink(context.Context, *CreateShortLinkRequest) (*CreateShortLinkResponse, error)
-	CreateShortLinkJSON(context.Context, *CreateShortLinkJSONRequest) (*CreateShortLinkJSONResponse, error)
-	CreateShortLinkJSONBatch(context.Context, *CreateShortLinkJSONBatchRequest) (*CreateShortLinkJSONBatchResponse, error)
-	GetShortLink(context.Context, *GetShortLinkRequest) (*GetShortLinkResponse, error)
-	GetShortLinksOfUser(context.Context, *GetShortLinksOfUserRequest) (*GetShortLinksOfUserResponse, error)
-	DeleteURLs(context.Context, *DeleteURLsRequest) (*DeleteURLsResponse, error)
-	PingDB(context.Context, *PingDBRequest) (*PingDBResponse, error)
-	Stats(context.Context, *StatsRequest) (*StatsResponse, error)
+	CreateShortLink(context.Context, *model.CreateShortLinkRequest) (*model.CreateShortLinkResponse, error)
+	CreateShortLinkJSON(context.Context, *model.CreateShortLinkJSONRequest) (*model.CreateShortLinkJSONResponse, error)
+	CreateShortLinkJSONBatch(context.Context, *model.CreateShortLinkJSONBatchRequest) (*model.CreateShortLinkJSONBatchResponse, error)
+	GetShortLink(context.Context, *model.GetShortLinkRequest) (*model.GetShortLinkResponse, error)
+	GetShortLinksOfUser(context.Context, *model.GetShortLinksOfUserRequest) (*model.GetShortLinksOfUserResponse, error)
+	DeleteURLs(context.Context, *model.DeleteURLsRequest) (*model.DeleteURLsResponse, error)
+	PingDB(context.Context, *model.PingDBRequest) (*model.PingDBResponse, error)
+	Stats(context.Context, *model.StatsRequest) (*model.StatsResponse, error)
 	mustEmbedUnimplementedURLShortenerServer()
 }
 
@@ -153,28 +154,28 @@ type URLShortenerServer interface {
 // pointer dereference when methods are called.
 type UnimplementedURLShortenerServer struct{}
 
-func (UnimplementedURLShortenerServer) CreateShortLink(context.Context, *CreateShortLinkRequest) (*CreateShortLinkResponse, error) {
+func (UnimplementedURLShortenerServer) CreateShortLink(context.Context, *model.CreateShortLinkRequest) (*model.CreateShortLinkResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateShortLink not implemented")
 }
-func (UnimplementedURLShortenerServer) CreateShortLinkJSON(context.Context, *CreateShortLinkJSONRequest) (*CreateShortLinkJSONResponse, error) {
+func (UnimplementedURLShortenerServer) CreateShortLinkJSON(context.Context, *model.CreateShortLinkJSONRequest) (*model.CreateShortLinkJSONResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateShortLinkJSON not implemented")
 }
-func (UnimplementedURLShortenerServer) CreateShortLinkJSONBatch(context.Context, *CreateShortLinkJSONBatchRequest) (*CreateShortLinkJSONBatchResponse, error) {
+func (UnimplementedURLShortenerServer) CreateShortLinkJSONBatch(context.Context, *model.CreateShortLinkJSONBatchRequest) (*model.CreateShortLinkJSONBatchResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateShortLinkJSONBatch not implemented")
 }
-func (UnimplementedURLShortenerServer) GetShortLink(context.Context, *GetShortLinkRequest) (*GetShortLinkResponse, error) {
+func (UnimplementedURLShortenerServer) GetShortLink(context.Context, *model.GetShortLinkRequest) (*model.GetShortLinkResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetShortLink not implemented")
 }
-func (UnimplementedURLShortenerServer) GetShortLinksOfUser(context.Context, *GetShortLinksOfUserRequest) (*GetShortLinksOfUserResponse, error) {
+func (UnimplementedURLShortenerServer) GetShortLinksOfUser(context.Context, *model.GetShortLinksOfUserRequest) (*model.GetShortLinksOfUserResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetShortLinksOfUser not implemented")
 }
-func (UnimplementedURLShortenerServer) DeleteURLs(context.Context, *DeleteURLsRequest) (*DeleteURLsResponse, error) {
+func (UnimplementedURLShortenerServer) DeleteURLs(context.Context, *model.DeleteURLsRequest) (*model.DeleteURLsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteURLs not implemented")
 }
-func (UnimplementedURLShortenerServer) PingDB(context.Context, *PingDBRequest) (*PingDBResponse, error) {
+func (UnimplementedURLShortenerServer) PingDB(context.Context, *model.PingDBRequest) (*model.PingDBResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method PingDB not implemented")
 }
-func (UnimplementedURLShortenerServer) Stats(context.Context, *StatsRequest) (*StatsResponse, error) {
+func (UnimplementedURLShortenerServer) Stats(context.Context, *model.StatsRequest) (*model.StatsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Stats not implemented")
 }
 func (UnimplementedURLShortenerServer) mustEmbedUnimplementedURLShortenerServer() {}
@@ -199,7 +200,7 @@ func RegisterURLShortenerServer(s grpc.ServiceRegistrar, srv URLShortenerServer)
 }
 
 func _URLShortener_CreateShortLink_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(CreateShortLinkRequest)
+	in := new(model.CreateShortLinkRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -211,13 +212,13 @@ func _URLShortener_CreateShortLink_Handler(srv interface{}, ctx context.Context,
 		FullMethod: URLShortener_CreateShortLink_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(URLShortenerServer).CreateShortLink(ctx, req.(*CreateShortLinkRequest))
+		return srv.(URLShortenerServer).CreateShortLink(ctx, req.(*model.CreateShortLinkRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _URLShortener_CreateShortLinkJSON_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(CreateShortLinkJSONRequest)
+	in := new(model.CreateShortLinkJSONRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -229,13 +230,13 @@ func _URLShortener_CreateShortLinkJSON_Handler(srv interface{}, ctx context.Cont
 		FullMethod: URLShortener_CreateShortLinkJSON_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(URLShortenerServer).CreateShortLinkJSON(ctx, req.(*CreateShortLinkJSONRequest))
+		return srv.(URLShortenerServer).CreateShortLinkJSON(ctx, req.(*model.CreateShortLinkJSONRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _URLShortener_CreateShortLinkJSONBatch_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(CreateShortLinkJSONBatchRequest)
+	in := new(model.CreateShortLinkJSONBatchRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -247,13 +248,13 @@ func _URLShortener_CreateShortLinkJSONBatch_Handler(srv interface{}, ctx context
 		FullMethod: URLShortener_CreateShortLinkJSONBatch_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(URLShortenerServer).CreateShortLinkJSONBatch(ctx, req.(*CreateShortLinkJSONBatchRequest))
+		return srv.(URLShortenerServer).CreateShortLinkJSONBatch(ctx, req.(*model.CreateShortLinkJSONBatchRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _URLShortener_GetShortLink_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetShortLinkRequest)
+	in := new(model.GetShortLinkRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -265,13 +266,13 @@ func _URLShortener_GetShortLink_Handler(srv interface{}, ctx context.Context, de
 		FullMethod: URLShortener_GetShortLink_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(URLShortenerServer).GetShortLink(ctx, req.(*GetShortLinkRequest))
+		return srv.(URLShortenerServer).GetShortLink(ctx, req.(*model.GetShortLinkRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _URLShortener_GetShortLinksOfUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetShortLinksOfUserRequest)
+	in := new(model.GetShortLinksOfUserRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -283,13 +284,13 @@ func _URLShortener_GetShortLinksOfUser_Handler(srv interface{}, ctx context.Cont
 		FullMethod: URLShortener_GetShortLinksOfUser_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(URLShortenerServer).GetShortLinksOfUser(ctx, req.(*GetShortLinksOfUserRequest))
+		return srv.(URLShortenerServer).GetShortLinksOfUser(ctx, req.(*model.GetShortLinksOfUserRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _URLShortener_DeleteURLs_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(DeleteURLsRequest)
+	in := new(model.DeleteURLsRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -301,13 +302,13 @@ func _URLShortener_DeleteURLs_Handler(srv interface{}, ctx context.Context, dec 
 		FullMethod: URLShortener_DeleteURLs_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(URLShortenerServer).DeleteURLs(ctx, req.(*DeleteURLsRequest))
+		return srv.(URLShortenerServer).DeleteURLs(ctx, req.(*model.DeleteURLsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _URLShortener_PingDB_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(PingDBRequest)
+	in := new(model.PingDBRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -319,13 +320,13 @@ func _URLShortener_PingDB_Handler(srv interface{}, ctx context.Context, dec func
 		FullMethod: URLShortener_PingDB_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(URLShortenerServer).PingDB(ctx, req.(*PingDBRequest))
+		return srv.(URLShortenerServer).PingDB(ctx, req.(*model.PingDBRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _URLShortener_Stats_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(StatsRequest)
+	in := new(model.StatsRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -337,7 +338,7 @@ func _URLShortener_Stats_Handler(srv interface{}, ctx context.Context, dec func(
 		FullMethod: URLShortener_Stats_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(URLShortenerServer).Stats(ctx, req.(*StatsRequest))
+		return srv.(URLShortenerServer).Stats(ctx, req.(*model.StatsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -383,5 +384,5 @@ var URLShortener_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "internal/app/models/proto/dto.proto",
+	Metadata: "server.proto",
 }

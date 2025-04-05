@@ -25,5 +25,6 @@ go run ./cmd/certificate_generator/certificate_generator.go
 ---
 Генерация go кода на основе proto файла:
 ```
-protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative .\internal\app\models\proto\dto.proto
+protoc --proto_path=internal/app/models/proto/model --go_out=internal/app/models/proto/model --go_opt=paths=source_relative internal/app/models/proto/model/*.proto
+protoc --proto_path=internal/app/models/proto --proto_path=internal/app/models/proto/model --go-grpc_out=internal/app/models/proto --go-grpc_opt=paths=source_relative internal/app/models/proto/server.proto
 ```
