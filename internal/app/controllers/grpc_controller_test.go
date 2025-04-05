@@ -231,7 +231,7 @@ func TestGRPCControllerCreateShortLinkJSONBatch(t *testing.T) {
 	testUserID := uuid.New()
 	originalURL := "https://ya.ru"
 	originalURLInvalid := "abc"
-	correlationId := "1"
+	correlationID := "1"
 	type request struct {
 		in  *pbModel.CreateShortLinkJSONBatchRequest
 		ctx context.Context
@@ -251,7 +251,7 @@ func TestGRPCControllerCreateShortLinkJSONBatch(t *testing.T) {
 				in: pbModel.CreateShortLinkJSONBatchRequest_builder{
 					Requests: []*pbModel.BatchRequest{
 						pbModel.BatchRequest_builder{
-							CorrelationId: &correlationId,
+							CorrelationId: &correlationID,
 							OriginalUrl:   &originalURL,
 						}.Build(),
 					},
@@ -269,7 +269,7 @@ func TestGRPCControllerCreateShortLinkJSONBatch(t *testing.T) {
 				in: pbModel.CreateShortLinkJSONBatchRequest_builder{
 					Requests: []*pbModel.BatchRequest{
 						pbModel.BatchRequest_builder{
-							CorrelationId: &correlationId,
+							CorrelationId: &correlationID,
 							OriginalUrl:   &originalURL,
 						}.Build(),
 					},
@@ -287,7 +287,7 @@ func TestGRPCControllerCreateShortLinkJSONBatch(t *testing.T) {
 				in: pbModel.CreateShortLinkJSONBatchRequest_builder{
 					Requests: []*pbModel.BatchRequest{
 						pbModel.BatchRequest_builder{
-							CorrelationId: &correlationId,
+							CorrelationId: &correlationID,
 							OriginalUrl:   &originalURLInvalid,
 						}.Build(),
 					},
@@ -305,7 +305,7 @@ func TestGRPCControllerCreateShortLinkJSONBatch(t *testing.T) {
 				in: pbModel.CreateShortLinkJSONBatchRequest_builder{
 					Requests: []*pbModel.BatchRequest{
 						pbModel.BatchRequest_builder{
-							CorrelationId: &correlationId,
+							CorrelationId: &correlationID,
 							OriginalUrl:   &originalURLInvalid,
 						}.Build(),
 					},
