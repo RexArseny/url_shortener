@@ -1,4 +1,5 @@
 //nolint:wrapcheck // errors of grpc
+//nolint:dupl // different grpc models
 package controllers
 
 import (

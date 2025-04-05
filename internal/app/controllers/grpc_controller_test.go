@@ -23,8 +23,8 @@ import (
 
 func TestGRPCControllerCreateShortLink(t *testing.T) {
 	testUserID := uuid.New()
-	originalUrl := "https://ya.ru"
-	originalUrlInvalid := "abc"
+	originalURL := "https://ya.ru"
+	originalURLInvalid := "abc"
 	type request struct {
 		in  *pbModel.CreateShortLinkRequest
 		ctx context.Context
@@ -43,7 +43,7 @@ func TestGRPCControllerCreateShortLink(t *testing.T) {
 			request: request{
 				in: pbModel.CreateShortLinkRequest_builder{
 					OriginalUrl: pbModel.OriginalURL_builder{
-						OriginalUrl: &originalUrl,
+						OriginalUrl: &originalURL,
 					}.Build(),
 				}.Build(),
 				ctx: metadata.NewIncomingContext(context.Background(), metadata.Pairs(middlewares.UserID, testUserID.String())),
@@ -58,7 +58,7 @@ func TestGRPCControllerCreateShortLink(t *testing.T) {
 			request: request{
 				in: pbModel.CreateShortLinkRequest_builder{
 					OriginalUrl: pbModel.OriginalURL_builder{
-						OriginalUrl: &originalUrl,
+						OriginalUrl: &originalURL,
 					}.Build(),
 				}.Build(),
 				ctx: metadata.NewIncomingContext(context.Background(), nil),
@@ -73,7 +73,7 @@ func TestGRPCControllerCreateShortLink(t *testing.T) {
 			request: request{
 				in: pbModel.CreateShortLinkRequest_builder{
 					OriginalUrl: pbModel.OriginalURL_builder{
-						OriginalUrl: &originalUrlInvalid,
+						OriginalUrl: &originalURLInvalid,
 					}.Build(),
 				}.Build(),
 				ctx: metadata.NewIncomingContext(context.Background(), metadata.Pairs(middlewares.UserID, testUserID.String())),
@@ -88,7 +88,7 @@ func TestGRPCControllerCreateShortLink(t *testing.T) {
 			request: request{
 				in: pbModel.CreateShortLinkRequest_builder{
 					OriginalUrl: pbModel.OriginalURL_builder{
-						OriginalUrl: &originalUrlInvalid,
+						OriginalUrl: &originalURLInvalid,
 					}.Build(),
 				}.Build(),
 				ctx: context.Background(),
@@ -126,8 +126,8 @@ func TestGRPCControllerCreateShortLink(t *testing.T) {
 }
 func TestGRPCControllerCreateShortLinkJSON(t *testing.T) {
 	testUserID := uuid.New()
-	originalUrl := "https://ya.ru"
-	originalUrlInvalid := "abc"
+	originalURL := "https://ya.ru"
+	originalURLInvalid := "abc"
 	type request struct {
 		in  *pbModel.CreateShortLinkJSONRequest
 		ctx context.Context
@@ -146,7 +146,7 @@ func TestGRPCControllerCreateShortLinkJSON(t *testing.T) {
 			request: request{
 				in: pbModel.CreateShortLinkJSONRequest_builder{
 					OriginalUrl: pbModel.OriginalURL_builder{
-						OriginalUrl: &originalUrl,
+						OriginalUrl: &originalURL,
 					}.Build(),
 				}.Build(),
 				ctx: metadata.NewIncomingContext(context.Background(), metadata.Pairs(middlewares.UserID, testUserID.String())),
@@ -161,7 +161,7 @@ func TestGRPCControllerCreateShortLinkJSON(t *testing.T) {
 			request: request{
 				in: pbModel.CreateShortLinkJSONRequest_builder{
 					OriginalUrl: pbModel.OriginalURL_builder{
-						OriginalUrl: &originalUrl,
+						OriginalUrl: &originalURL,
 					}.Build(),
 				}.Build(),
 				ctx: metadata.NewIncomingContext(context.Background(), nil),
@@ -176,7 +176,7 @@ func TestGRPCControllerCreateShortLinkJSON(t *testing.T) {
 			request: request{
 				in: pbModel.CreateShortLinkJSONRequest_builder{
 					OriginalUrl: pbModel.OriginalURL_builder{
-						OriginalUrl: &originalUrlInvalid,
+						OriginalUrl: &originalURLInvalid,
 					}.Build(),
 				}.Build(),
 				ctx: metadata.NewIncomingContext(context.Background(), metadata.Pairs(middlewares.UserID, testUserID.String())),
@@ -191,7 +191,7 @@ func TestGRPCControllerCreateShortLinkJSON(t *testing.T) {
 			request: request{
 				in: pbModel.CreateShortLinkJSONRequest_builder{
 					OriginalUrl: pbModel.OriginalURL_builder{
-						OriginalUrl: &originalUrlInvalid,
+						OriginalUrl: &originalURLInvalid,
 					}.Build(),
 				}.Build(),
 				ctx: context.Background(),
@@ -229,8 +229,8 @@ func TestGRPCControllerCreateShortLinkJSON(t *testing.T) {
 }
 func TestGRPCControllerCreateShortLinkJSONBatch(t *testing.T) {
 	testUserID := uuid.New()
-	originalUrl := "https://ya.ru"
-	originalUrlInvalid := "abc"
+	originalURL := "https://ya.ru"
+	originalURLInvalid := "abc"
 	correlationId := "1"
 	type request struct {
 		in  *pbModel.CreateShortLinkJSONBatchRequest
@@ -252,7 +252,7 @@ func TestGRPCControllerCreateShortLinkJSONBatch(t *testing.T) {
 					Requests: []*pbModel.BatchRequest{
 						pbModel.BatchRequest_builder{
 							CorrelationId: &correlationId,
-							OriginalUrl:   &originalUrl,
+							OriginalUrl:   &originalURL,
 						}.Build(),
 					},
 				}.Build(),
@@ -270,7 +270,7 @@ func TestGRPCControllerCreateShortLinkJSONBatch(t *testing.T) {
 					Requests: []*pbModel.BatchRequest{
 						pbModel.BatchRequest_builder{
 							CorrelationId: &correlationId,
-							OriginalUrl:   &originalUrl,
+							OriginalUrl:   &originalURL,
 						}.Build(),
 					},
 				}.Build(),
@@ -288,7 +288,7 @@ func TestGRPCControllerCreateShortLinkJSONBatch(t *testing.T) {
 					Requests: []*pbModel.BatchRequest{
 						pbModel.BatchRequest_builder{
 							CorrelationId: &correlationId,
-							OriginalUrl:   &originalUrlInvalid,
+							OriginalUrl:   &originalURLInvalid,
 						}.Build(),
 					},
 				}.Build(),
@@ -306,7 +306,7 @@ func TestGRPCControllerCreateShortLinkJSONBatch(t *testing.T) {
 					Requests: []*pbModel.BatchRequest{
 						pbModel.BatchRequest_builder{
 							CorrelationId: &correlationId,
-							OriginalUrl:   &originalUrlInvalid,
+							OriginalUrl:   &originalURLInvalid,
 						}.Build(),
 					},
 				}.Build(),
@@ -346,7 +346,7 @@ func TestGRPCControllerCreateShortLinkJSONBatch(t *testing.T) {
 }
 func TestGRPCControllerGetShortLink(t *testing.T) {
 	testUserID := uuid.New()
-	originalUrl := "https://ya.ru"
+	originalURL := "https://ya.ru"
 	type request struct {
 		valid bool
 		md    metadata.MD
@@ -410,7 +410,7 @@ func TestGRPCControllerGetShortLink(t *testing.T) {
 			ctx := metadata.NewIncomingContext(context.Background(), tt.request.md)
 			data, err := conntroller.CreateShortLink(ctx, pbModel.CreateShortLinkRequest_builder{
 				OriginalUrl: pbModel.OriginalURL_builder{
-					OriginalUrl: &originalUrl,
+					OriginalUrl: &originalURL,
 				}.Build(),
 			}.Build())
 			if tt.want.response {
@@ -480,7 +480,7 @@ func TestGRPCControllerPingDB(t *testing.T) {
 }
 func TestGRPCControllerGetShortLinksOfUser(t *testing.T) {
 	testUserID := uuid.New()
-	originalUrl := "https://ya.ru"
+	originalURL := "https://ya.ru"
 	type request struct {
 		ctx context.Context
 	}
@@ -542,7 +542,7 @@ func TestGRPCControllerGetShortLinksOfUser(t *testing.T) {
 			}
 			data, err := conntroller.CreateShortLink(tt.request.ctx, pbModel.CreateShortLinkRequest_builder{
 				OriginalUrl: pbModel.OriginalURL_builder{
-					OriginalUrl: &originalUrl,
+					OriginalUrl: &originalURL,
 				}.Build(),
 			}.Build())
 			assert.NoError(t, err)
@@ -555,7 +555,7 @@ func TestGRPCControllerGetShortLinksOfUser(t *testing.T) {
 }
 func TestGRPCControllerDeleteURLs(t *testing.T) {
 	testUserID := uuid.New()
-	originalUrl := "https://ya.ru"
+	originalURL := "https://ya.ru"
 	type request struct {
 		ctx context.Context
 	}
@@ -622,7 +622,7 @@ func TestGRPCControllerDeleteURLs(t *testing.T) {
 			assert.NotEmpty(t, resp1.GetStatus())
 			data, err := conntroller.CreateShortLink(tt.request.ctx, pbModel.CreateShortLinkRequest_builder{
 				OriginalUrl: pbModel.OriginalURL_builder{
-					OriginalUrl: &originalUrl,
+					OriginalUrl: &originalURL,
 				}.Build(),
 			}.Build())
 			assert.NoError(t, err)
@@ -650,7 +650,7 @@ func TestGRPCControllerDeleteURLs(t *testing.T) {
 }
 func TestGRPCControllerStats(t *testing.T) {
 	testUserID := uuid.New()
-	originalUrl := "https://ya.ru"
+	originalURL := "https://ya.ru"
 	type request struct {
 		ctx context.Context
 	}
@@ -707,7 +707,7 @@ func TestGRPCControllerStats(t *testing.T) {
 			assert.NoError(t, err)
 			data, err := conntroller.CreateShortLink(tt.request.ctx, pbModel.CreateShortLinkRequest_builder{
 				OriginalUrl: pbModel.OriginalURL_builder{
-					OriginalUrl: &originalUrl,
+					OriginalUrl: &originalURL,
 				}.Build(),
 			}.Build())
 			assert.NoError(t, err)
