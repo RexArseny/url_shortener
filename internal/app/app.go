@@ -49,7 +49,7 @@ func NewServer() error {
 	defer func() {
 		var pathErr *fs.PathError
 		if err = mainLogger.Sync(); err != nil && !errors.As(err, &pathErr) {
-			log.Fatalf("Logger sync failed: %s", err)
+			log.Printf("Logger sync failed: %s", err)
 		}
 	}()
 
@@ -71,7 +71,7 @@ func NewServer() error {
 		if repositoryClose != nil {
 			err = repositoryClose()
 			if err != nil {
-				mainLogger.Fatal("Can not close repository", zap.Error(err))
+				mainLogger.Error("Can not close repository", zap.Error(err))
 			}
 		}
 	}()
@@ -139,12 +139,6 @@ func NewServer() error {
 	if err != nil {
 		return fmt.Errorf("can not init listener: %w", err)
 	}
-	defer func() {
-		err = listener.Close()
-		if err != nil {
-			mainLogger.Fatal("Can not close listener", zap.Error(err))
-		}
-	}()
 
 	grpcController := controllers.NewGRPCController(mainLogger.Named("grpccontroller"), interactor, trustedSubnet)
 
@@ -160,7 +154,7 @@ func NewServer() error {
 		<-ctx.Done()
 		err = server.Shutdown(ctx)
 		if err != nil {
-			mainLogger.Fatal("Can not shutdown server", zap.Error(err))
+			mainLogger.Error("Can not shutdown server", zap.Error(err))
 		}
 		grpcServer.GracefulStop()
 	}()
@@ -168,7 +162,7 @@ func NewServer() error {
 	go func() {
 		err := grpcServer.Serve(listener)
 		if err != nil {
-			mainLogger.Fatal("Can not serve grpc", zap.Error(err))
+			mainLogger.Error("Can not serve grpc", zap.Error(err))
 		}
 	}()
 
