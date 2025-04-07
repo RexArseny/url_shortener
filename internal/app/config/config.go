@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"net"
 	"os"
 
 	env "github.com/caarlos0/env/v11"
@@ -19,6 +20,7 @@ const (
 	DefaultEnableHTTPS        = false
 	DefaultCertificatePath    = "cert.pem"
 	DefaultCertificateKeyPath = "key.pem"
+	DefaultGRPCServerAddress  = "localhost:9000"
 )
 
 // Config is a set of service configurable variables.
@@ -30,6 +32,8 @@ type Config struct {
 	PublicKeyPath      string `env:"PUBLIC_KEY_PATH" json:"public_key_path"`
 	PrivateKeyPath     string `env:"PRIVATE_KEY_PATH" json:"private_key_path"`
 	Config             string `env:"CONFIG" json:"config"`
+	TrustedSubnet      string `env:"TRUSTED_SUBNET" json:"trusted_subnet"`
+	GRPCServerAddress  string `env:"GRPC_SERVER_ADDRESS" json:"grpc_server_address"`
 	CertificatePath    string `env:"CERTIFICATE_PATH" json:"certificate_path"`
 	CertificateKeyPath string `env:"CERTIFICATE_KEY_PATH" json:"certificate_key_path"`
 	EnableHTTPS        bool   `env:"ENABLE_HTTPS" json:"enable_https"`
@@ -50,6 +54,8 @@ func Init() (*Config, error) {
 	flag.StringVar(&cfg.CertificateKeyPath, "key", DefaultCertificateKeyPath, "certificate key path")
 	flag.StringVar(&cfg.Config, "c", "", "config")
 	flag.StringVar(&cfg.Config, "config", "", "config")
+	flag.StringVar(&cfg.TrustedSubnet, "t", "", "trusted subnet")
+	flag.StringVar(&cfg.GRPCServerAddress, "grpc", DefaultGRPCServerAddress, "grpc server address")
 
 	flag.Parse()
 
@@ -96,10 +102,23 @@ func Init() (*Config, error) {
 		if cfg.CertificateKeyPath == DefaultCertificateKeyPath {
 			cfg.CertificateKeyPath = configFileData.CertificateKeyPath
 		}
+		if cfg.TrustedSubnet == "" {
+			cfg.TrustedSubnet = configFileData.TrustedSubnet
+		}
+		if cfg.GRPCServerAddress == DefaultGRPCServerAddress {
+			cfg.GRPCServerAddress = configFileData.GRPCServerAddress
+		}
 	}
 
 	if cfg.BasicPath[len(cfg.BasicPath)-1] == '/' {
 		cfg.BasicPath = cfg.BasicPath[:len(cfg.BasicPath)-1]
+	}
+
+	if cfg.TrustedSubnet != "" {
+		_, _, err = net.ParseCIDR(cfg.TrustedSubnet)
+		if err != nil {
+			return nil, fmt.Errorf("can not parse cidr from trusted subnet: %w", err)
+		}
 	}
 
 	return &cfg, nil

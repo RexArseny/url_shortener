@@ -1,0 +1,35 @@
+edition = "2023";
+
+option go_package = "github.com/RexArseny/url_shortener/internal/app/models/proto";
+option features.(pb.go).api_level = API_OPAQUE;
+
+package proto;
+
+import "model/create_short_link_request.proto";
+import "model/create_short_link_response.proto";
+import "model/create_short_link_json_request.proto";
+import "model/create_short_link_json_response.proto";
+import "model/create_short_link_json_batch_request.proto";
+import "model/create_short_link_json_batch_response.proto";
+import "model/get_short_link_request.proto";
+import "model/get_short_link_response.proto";
+import "model/get_short_links_of_user_request.proto";
+import "model/get_short_links_of_user_response.proto";
+import "model/delete_urls_request.proto";
+import "model/delete_urls_response.proto";
+import "model/ping_db_request.proto";
+import "model/ping_db_response.proto";
+import "model/stats_request.proto";
+import "model/stats_response.proto";
+import "google/protobuf/go_features.proto";
+
+service URLShortener {
+  rpc CreateShortLink (model.CreateShortLinkRequest) returns (model.CreateShortLinkResponse) {}
+  rpc CreateShortLinkJSON (model.CreateShortLinkJSONRequest) returns (model.CreateShortLinkJSONResponse) {}
+  rpc CreateShortLinkJSONBatch (model.CreateShortLinkJSONBatchRequest) returns (model.CreateShortLinkJSONBatchResponse) {}
+  rpc GetShortLink (model.GetShortLinkRequest) returns (model.GetShortLinkResponse) {}
+  rpc GetShortLinksOfUser (model.GetShortLinksOfUserRequest) returns (model.GetShortLinksOfUserResponse) {}
+  rpc DeleteURLs (model.DeleteURLsRequest) returns (model.DeleteURLsResponse) {}
+  rpc PingDB (model.PingDBRequest) returns (model.PingDBResponse) {}
+  rpc Stats (model.StatsRequest) returns (model.StatsResponse) {}
+}

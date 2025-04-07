@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"net"
 	"net/http"
 
 	"github.com/RexArseny/url_shortener/internal/app/middlewares"
@@ -19,15 +20,21 @@ const ID = "id"
 
 // Controller is responsible for managing the network interactions of the service.
 type Controller struct {
-	logger     *zap.Logger
-	interactor usecases.Interactor
+	logger        *zap.Logger
+	trustedSubnet *net.IPNet
+	interactor    usecases.Interactor
 }
 
 // NewController create new Controller.
-func NewController(logger *zap.Logger, interactor usecases.Interactor) Controller {
+func NewController(
+	logger *zap.Logger,
+	interactor usecases.Interactor,
+	trustedSubnet *net.IPNet,
+) Controller {
 	return Controller{
-		logger:     logger,
-		interactor: interactor,
+		logger:        logger,
+		trustedSubnet: trustedSubnet,
+		interactor:    interactor,
 	}
 }
 
@@ -84,12 +91,12 @@ func (c *Controller) CreateShortLink(ctx *gin.Context) {
 func (c *Controller) CreateShortLinkJSON(ctx *gin.Context) {
 	tokenValue, ok := ctx.Get(middlewares.Authorization)
 	if !ok {
-		ctx.String(http.StatusBadRequest, http.StatusText(http.StatusBadRequest))
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": http.StatusText(http.StatusBadRequest)})
 		return
 	}
 	token, ok := tokenValue.(*middlewares.JWT)
 	if !ok {
-		ctx.String(http.StatusBadRequest, http.StatusText(http.StatusBadRequest))
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": http.StatusText(http.StatusBadRequest)})
 		return
 	}
 
@@ -118,13 +125,13 @@ func (c *Controller) CreateShortLinkJSON(ctx *gin.Context) {
 			ctx.JSON(http.StatusBadRequest, gin.H{"error": http.StatusText(http.StatusBadRequest)})
 			return
 		}
-		c.logger.Error("Can not create short link", zap.Error(err))
+		c.logger.Error("Can not create short link from json", zap.Error(err))
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": http.StatusText(http.StatusInternalServerError)})
 		return
 	}
 
 	if result == nil || *result == "" {
-		c.logger.Error("Short link is empty", zap.Any("request", ctx.Request))
+		c.logger.Error("Short link from json is empty", zap.Any("request", ctx.Request))
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": http.StatusText(http.StatusInternalServerError)})
 		return
 	}
@@ -140,12 +147,12 @@ func (c *Controller) CreateShortLinkJSON(ctx *gin.Context) {
 func (c *Controller) CreateShortLinkJSONBatch(ctx *gin.Context) {
 	tokenValue, ok := ctx.Get(middlewares.Authorization)
 	if !ok {
-		ctx.String(http.StatusBadRequest, http.StatusText(http.StatusBadRequest))
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": http.StatusText(http.StatusBadRequest)})
 		return
 	}
 	token, ok := tokenValue.(*middlewares.JWT)
 	if !ok {
-		ctx.String(http.StatusBadRequest, http.StatusText(http.StatusBadRequest))
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": http.StatusText(http.StatusBadRequest)})
 		return
 	}
 
@@ -195,7 +202,7 @@ func (c *Controller) GetShortLink(ctx *gin.Context) {
 	}
 
 	if result == nil || *result == "" {
-		c.logger.Error("Short link is empty", zap.Any("request", ctx.Request))
+		c.logger.Error("Original URL is empty", zap.Any("request", ctx.Request))
 		ctx.String(http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError))
 		return
 	}
@@ -224,12 +231,12 @@ func (c *Controller) GetShortLinksOfUser(ctx *gin.Context) {
 	}
 	tokenValue, ok := ctx.Get(middlewares.Authorization)
 	if !ok {
-		ctx.String(http.StatusBadRequest, http.StatusText(http.StatusBadRequest))
+		ctx.JSON(http.StatusNoContent, gin.H{"error": http.StatusText(http.StatusNoContent)})
 		return
 	}
 	token, ok := tokenValue.(*middlewares.JWT)
 	if !ok {
-		ctx.String(http.StatusBadRequest, http.StatusText(http.StatusBadRequest))
+		ctx.JSON(http.StatusNoContent, gin.H{"error": http.StatusText(http.StatusNoContent)})
 		return
 	}
 
@@ -257,12 +264,12 @@ func (c *Controller) DeleteURLs(ctx *gin.Context) {
 	}
 	tokenValue, ok := ctx.Get(middlewares.Authorization)
 	if !ok {
-		ctx.String(http.StatusBadRequest, http.StatusText(http.StatusBadRequest))
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": http.StatusText(http.StatusUnauthorized)})
 		return
 	}
 	token, ok := tokenValue.(*middlewares.JWT)
 	if !ok {
-		ctx.String(http.StatusBadRequest, http.StatusText(http.StatusBadRequest))
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": http.StatusText(http.StatusUnauthorized)})
 		return
 	}
 
@@ -287,4 +294,21 @@ func (c *Controller) DeleteURLs(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusAccepted, gin.H{"status": http.StatusText(http.StatusAccepted)})
+}
+
+// Stats return statistic of shortened urls and users in service.
+func (c *Controller) Stats(ctx *gin.Context) {
+	if c.trustedSubnet == nil || !c.trustedSubnet.Contains(net.ParseIP(ctx.GetHeader("X-Real-IP"))) {
+		ctx.JSON(http.StatusForbidden, gin.H{"error": http.StatusText(http.StatusForbidden)})
+		return
+	}
+
+	stats, err := c.interactor.Stats(ctx)
+	if err != nil {
+		c.logger.Error("Can not get stats", zap.Error(err))
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": http.StatusText(http.StatusInternalServerError)})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, stats)
 }

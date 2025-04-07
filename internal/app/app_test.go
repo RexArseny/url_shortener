@@ -48,6 +48,7 @@ func TestNewServer(t *testing.T) {
 		t.Setenv("ENABLE_HTTPS", "true")
 		t.Setenv("CERTIFICATE_PATH", "cert.pem")
 		t.Setenv("CERTIFICATE_KEY_PATH", "key.pem")
+		t.Setenv("TRUSTED_SUBNET", "127.0.0.0/24")
 
 		defer func() {
 			err = os.Remove("cert.pem")

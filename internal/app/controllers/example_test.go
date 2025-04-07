@@ -31,7 +31,7 @@ func ExampleController_CreateShortLink() {
 		cfg.BasicPath,
 		repository.NewLinks(),
 	)
-	conntroller := NewController(testLogger.Named("controller"), interactor)
+	conntroller := NewController(testLogger.Named("controller"), interactor, nil)
 
 	w := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(w)
@@ -77,7 +77,7 @@ func ExampleController_CreateShortLinkJSON() {
 		cfg.BasicPath,
 		repository.NewLinks(),
 	)
-	conntroller := NewController(testLogger.Named("controller"), interactor)
+	conntroller := NewController(testLogger.Named("controller"), interactor, nil)
 
 	w := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(w)

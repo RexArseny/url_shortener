@@ -169,3 +169,22 @@ func (l *Links) DeleteURLs(_ context.Context, urls []string, userID uuid.UUID) e
 func (l *Links) Ping(_ context.Context) error {
 	return nil
 }
+
+// Stats return statistic of shortened urls and users in service.
+func (l *Links) Stats(_ context.Context) (*models.Stats, error) {
+	var urls int
+	usersMap := make(map[uuid.UUID]struct{})
+
+	for _, info := range l.originalURLs {
+		urls++
+		if _, ok := usersMap[info.userID]; ok {
+			continue
+		}
+		usersMap[info.userID] = struct{}{}
+	}
+
+	return &models.Stats{
+		URLs:  urls,
+		Users: len(usersMap),
+	}, nil
+}
